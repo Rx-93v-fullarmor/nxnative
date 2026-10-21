@@ -3,6 +3,8 @@ import json
 import posixpath
 import stat
 import zipfile
+
+from .file_tools import filesystem_path, remove_stage
 import os
 from pathlib import Path
 import platform
@@ -160,11 +162,6 @@ def sdk_archive(config, discovery=None):
     return Path(found['archives'][0]) if len(found['archives']) == 1 else None
 
 
-def remove_stage(stage, root):
-    stage, root = Path(stage).resolve(), Path(root).resolve()
-    if stage == root or not stage.is_relative_to(root):
-        raise ValueError('Refusing to remove a staging directory outside the tools folder')
-    shutil.rmtree(stage, ignore_errors=True)
 
 
 SDK_REPOSITORY = {
@@ -188,13 +185,6 @@ def sdk_install_method(config, discovery=None):
     return 'import' if sdk_archive(config, discovery) else 'manual'
 
 
-def filesystem_path(path):
-    path = Path(path).resolve()
-    # SDK framework paths can exceed MAX_PATH in a deeply nested checkout.
-    if os.name == 'nt' and not str(path).startswith('\\\\?\\'):
-        text = str(path)
-        path = Path('\\\\?\\UNC\\' + text[2:] if text.startswith('\\\\') else '\\\\?\\' + text)
-    return path
 
 
 def unpack_sdk(archive, destination):

@@ -15,6 +15,7 @@ import zipfile
 
 from scripts.webui_bootstrap import DEFAULT_INDEX, PYTHON_INDEXES
 from .jobs import emit
+from .file_tools import filesystem_path, remove_stage
 from .platform_tools import tool_path, find_dotnet, dotnet_environment, probe
 
 PYTHON_PACKAGES = {'lz4': 'lz4', 'capstone': 'capstone', 'fontTools': 'fonttools', 'PIL': 'Pillow'}
@@ -46,21 +47,38 @@ def download(url, destination, folder, expected_hash, algorithm='sha512', label=
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != 'https' or parsed.hostname not in ('builds.dotnet.microsoft.com', 'download.visualstudio.microsoft.com', 'ci.dot.net', 'github.com', 'codeload.github.com'):
         raise ValueError('Unexpected dependency download origin')
+    destination = filesystem_path(destination)
+    if destination.is_file():
+        digest = hashlib.new(algorithm)
+        with destination.open('rb') as existing:
+            while block := existing.read(1024 * 1024):
+                digest.update(block)
+        if digest.hexdigest().lower() == expected_hash.lower():
+            print('Reusing verified download: ' + label, flush=True)
+            emit(folder, 'stage', name='Reusing verified download: ' + label)
+            return
+        destination.unlink()
+    temporary = destination.with_name(destination.name + '.partial')
     digest = hashlib.new(algorithm)
-    with urllib.request.urlopen(url, timeout=60) as response, destination.open('wb') as output:
-        total = int(response.headers.get('Content-Length', 0))
-        done, last = 0, -1
-        while block := response.read(1024 * 1024):
-            output.write(block); digest.update(block); done += len(block)
-            if done // (8 * 1024**2) != last:
-                last = done // (8 * 1024**2)
-                print(f'Downloaded {done // 1024**2} / {total // 1024**2} MiB', flush=True)
-                emit(folder, 'stage', name=f'Downloading {label}: {done // 1024**2} / {total // 1024**2} MiB')
-    if digest.hexdigest().lower() != expected_hash.lower():
-        destination.unlink(missing_ok=True)
-        raise ValueError(label + ' ' + algorithm + ' checksum mismatch')
+    try:
+        with urllib.request.urlopen(url, timeout=60) as response, temporary.open('wb') as output:
+            total = int(response.headers.get('Content-Length', 0))
+            done, last = 0, -1
+            while block := response.read(1024 * 1024):
+                output.write(block); digest.update(block); done += len(block)
+                if done // (8 * 1024**2) != last:
+                    last = done // (8 * 1024**2)
+                    print(f'Downloaded {done // 1024**2} / {total // 1024**2} MiB', flush=True)
+                    emit(folder, 'stage', name=f'Downloading {label}: {done // 1024**2} / {total // 1024**2} MiB')
+        if digest.hexdigest().lower() != expected_hash.lower():
+            raise ValueError(label + ' ' + algorithm + ' checksum mismatch')
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
 
 def unpack(archive, destination, source_root=None):
+    archive, destination = filesystem_path(archive), filesystem_path(destination)
     if archive.suffix == '.zip':
         with zipfile.ZipFile(archive) as source:
             for item in source.infolist():
@@ -89,9 +107,11 @@ def install_dotnet(folder, root, run):
         metadata = json.load(response)
     sdk = next(sdk for release in metadata['releases'] for sdk in release.get('sdks', [release['sdk']]) if sdk['version'] == metadata['latest-sdk'])
     asset = next(f for f in sdk['files'] if f['rid'] == rid and f['url'].endswith(suffix))
-    archive = folder / ('dotnet' + suffix)
+    cache = root / 'downloads'
+    cache.mkdir(parents=True, exist_ok=True)
+    archive = cache / ('dotnet-' + sdk['version'] + '-' + rid + suffix)
     download(asset['url'], archive, folder, asset['hash'])
-    stage = root / ('.dotnet-install-' + folder.name)
+    stage = root / ('.dotnet-' + folder.name[:16])
     stage.mkdir(parents=True, exist_ok=True)
     try:
         unpack(archive, stage)
@@ -101,8 +121,9 @@ def install_dotnet(folder, root, run):
             raise ValueError('The configured dotnet directory already exists but is incomplete. Choose a new tools directory or repair it manually.')
         stage.rename(root / 'dotnet')
     finally:
-        shutil.rmtree(stage, ignore_errors=True)
-        archive.unlink(missing_ok=True)
+        remove_stage(stage, root)
+    # Keep a verified archive on failure so retries do not download it again.
+    archive.unlink(missing_ok=True)
 
 MAC_DOWNLOADS = {
     'xcodegen': ('https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip',
@@ -168,6 +189,10 @@ def install(folder, task, config, run):
         raise ValueError('Unsupported Python package source')
     failed = []
     for name in names:
+        if name == 'extractor' and 'dotnet' in failed:
+            print('【红】extractor: Skipped because .NET SDK installation failed. Retry the installation task after fixing .NET.', flush=True)
+            failed.append(name)
+            continue
         if next(c for c in environment(config)['checks'] if c['name'] == name)['available']:
             print('Already installed: ' + name, flush=True)
             continue
