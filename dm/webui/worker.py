@@ -41,6 +41,10 @@ def local_link(source, destination):
 def execute(folder):
     task = json.loads((folder / 'task.json').read_text(encoding='utf-8'))
     config = json.loads(os.environ['NX_WEB_CONFIG'])
+    if task['kind'] == 'install':
+        from .dependencies import install
+        install(folder, task, config, run)
+        return
     toolroot = Path(config['tools'])
     extractor = toolroot / 'nx_extract' / ('nx_extract.exe' if os.name == 'nt' else 'nx_extract')
     if not extractor.is_file():

@@ -1,5 +1,7 @@
 // WebUI language is independent of the requested game language. Logs stay verbatim.
 const zhMessages = {
+"Save settings":"保存设置","Settings saved.":"设置已保存。","Installing ":"正在安装 ","Downloading .NET: ":"正在下载 .NET：",
+"Install":"一键安装","Manual setup":"需手动安装","Installs through Homebrew":"通过 Homebrew 安装到其软件目录","install":"安装依赖","Install all supported missing dependencies":"一键安装所有可自动安装的缺失依赖","Python package source":"Python 下载源（保存后生效）","Tsinghua mirror (China)":"清华镜像（国内）","Official PyPI":"PyPI 官方源","Windows installation":"Windows 安装方式","macOS installation":"macOS 安装方式","Homebrew installation instructions":"Homebrew 官方安装说明","Python packages use the Tsinghua mirror by default. Automatic installers run locally and keep logs. Apple SDKs require manual setup.":"Python 默认使用清华镜像源。自动安装在本机执行并记录日志，Apple SDK 需要手动配置。","Install Python 3.11 or newer, then double-click scripts/start_webui.bat. Missing Python packages install automatically. Use this panel to install .NET 10 and build nx_extract. Configure Windows LLVM, SPIRV-Cross, Apple Metal Developer Tools and your iPhoneOS SDK manually. Windows supports iOS packaging only.":"安装 Python 3.11 或更新版本，然后双击 scripts/start_webui.bat，缺失的 Python 依赖会自动安装。在此面板可一键安装 .NET 10 并构建 nx_extract。Windows LLVM、SPIRV-Cross、Apple Metal Developer Tools 和 iPhoneOS SDK 需手动配置。Windows 仅支持打包 iOS 应用。","Install Python 3.11 or newer and Xcode. Open Xcode once to finish its setup, then double-click scripts/start_webui.command or run sh scripts/start_webui.sh. This panel installs .NET 10 and builds nx_extract. With Homebrew already installed, it can also install xcodegen, zstd and spirv-cross. macOS supports macOS and iOS packaging.":"安装 Python 3.11 或更新版本及 Xcode，首次打开 Xcode 完成组件安装。双击 scripts/start_webui.command，或执行 sh scripts/start_webui.sh。在此面板可安装 .NET 10 并构建 nx_extract。已安装 Homebrew 时，还可一键安装 xcodegen、zstd、spirv-cross。macOS 支持打包 macOS 和 iOS 应用。","Dependency installation complete":"依赖安装完成","Wait for queued tasks before installing dependencies.":"请等待当前任务结束后再安装依赖。","Select missing dependencies that support automatic installation":"请选择缺失且支持自动安装的依赖",
   "BUILD STUDIO": "构建工作台",
   "LOCAL WORKSPACE": "本地工作区",
   "Environment & tools": "环境与工具",
@@ -130,7 +132,7 @@ function t(text) {
   text = String(text ?? '');
   if (uiLanguage !== 'zh-CN') return text;
   if (Object.hasOwn(zhMessages, text)) return zhMessages[text];
-  for (const prefix of ['Data folder: ', 'Task queued: ', 'Remove '])
+  for (const prefix of ['Data folder: ', 'Task queued: ', 'Remove ', 'Installing ', 'Downloading .NET: '])
     if (text.startsWith(prefix)) return zhMessages[prefix] + text.slice(prefix.length);
   return text;
 }

@@ -20,7 +20,7 @@ Open the URL printed by the launcher. The token is exchanged for a local session
 
 ## Tools and platforms
 
-Open **Environment & tools** to configure the tools directory and, on Windows, the Apple SDK and Metal compiler paths. Dependency checks report missing files and Python packages. Each check links to the official download or installation instructions; missing entries also show the expected path and a localized setup hint. Recheck after installing. Downloads and SDK installation are manual. Tool preparation is explicit:
+Open **Environment & tools** to configure the tools directory and, on Windows, the Apple SDK and Metal compiler paths. Dependency checks report missing files and Python packages. Each check links to the official download or installation instructions; missing entries also show the expected path and a localized setup hint. Missing supported dependencies have an **Install** button; **Install all supported missing dependencies** queues them together. Installation uses the existing serial task queue, `events.jsonl` and `build.log`; view progress, cancel or retry like other tasks. Completed installations trigger a fresh check. Already present dependencies are skipped. Manual entries keep their official instructions. Offline bundle preparation remains available:
 
 ```sh
 python scripts/prepare_webui_tools.py --out /path/to/external/tools --source-tools /path/to/existing/tools
@@ -36,6 +36,28 @@ The preparer installs Python dependencies, builds the LibHac extractor, and writ
 Windows uses `scripts/build_ipa_windows.py`. It requires one shader version matching the packaged version and rejects games whose extracted sources require Vulkan, runtime shader capture, Unreal decoding, or Oodle capture. Graphics requirements are detected from the extracted game, not guessed from its name. macOS uses the existing NSP pipeline and its capture support. Application builds require a registered profile and its exact known builds; inspection also works for unregistered titles.
 
 The header language selector switches between Simplified Chinese and English and remembers the choice in this browser. This affects only the WebUI; game language is a separate launch setting. Build-tool logs remain unchanged.
+
+## Windows installation
+
+1. Install [Python 3.11 or newer](https://www.python.org/downloads/windows/) and enable its PATH option. Clone or download this branch, then double-click `scripts/start_webui.bat` or run `python scripts/start_webui.py` from the repository root.
+2. Startup installs missing Python dependencies into `.webui-data/venv` and opens the local WebUI. No data-folder prompt or global pip configuration is needed.
+3. Open **Environment & tools**, keep the default `.webui-data/tools` directory (or save a different directory), then select **Install all supported missing dependencies**. This downloads the official .NET 10 SDK for the host architecture, verifies its SHA-512 hash, and builds this repository's `nx_extract`. Python build packages can also be installed individually.
+4. Install the remaining native tools using the linked official instructions. Keep LLVM `bin` and `lib/clang` together under `tools/ios-cross/toolchain/windows/iphone`; this must include `clang.exe` and `lld.exe`. Put a Windows SPIRV-Cross build at `tools/spirv-cross-build/spirv-cross.exe`. Configure the `metal.exe` path from [Apple Metal Developer Tools](https://developer.apple.com/metal/tools/). Supply an iPhoneOS SDK from your own Xcode installation and save its absolute directory in the SDK field.
+5. Select **Recheck**, then upload/import the game packages and keys. Windows produces unsigned iOS packages for the supported offline NVN subset; it cannot produce macOS applications or capture runtime shaders.
+
+## macOS installation
+
+1. Use an Apple Silicon Mac. Install [Python 3.11 or newer](https://www.python.org/downloads/macos/) and [Xcode](https://developer.apple.com/xcode/). Open Xcode once and finish its requested component/license setup. If developer tools point at the standalone Command Line Tools instead of Xcode, choose Xcode in **Xcode > Settings > Locations > Command Line Tools**.
+2. Double-click `scripts/start_webui.command`, or run `sh scripts/start_webui.sh` from the repository root. Missing Python dependencies install automatically; data defaults to `.webui-data`.
+3. Open **Environment & tools** and install the missing .NET SDK and extractor. The SDK stays in the configured tools directory and does not replace a system installation.
+4. With [Homebrew](https://brew.sh/) already installed, the panel can run `brew install xcodegen`, `brew install zstd`, and `brew install spirv-cross`. These use Homebrew's normal installation prefix; the UI identifies this explicitly. Homebrew itself, Xcode and Apple SDKs require manual setup. Standard `/opt/homebrew/bin` and `/usr/local/bin` locations are detected even when launched from Finder.
+5. Select **Recheck**, then choose macOS and/or iOS output. Tool presence does not establish shader-chain compatibility; the existing build checks still enforce the repository's tool fingerprints. macOS installation and builds need validation on an actual Mac.
+
+## Python mirror and installer behavior
+
+Startup, WebUI Python installation and the offline bundle preparer default to the [Tsinghua PyPI mirror](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/) at `https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple`. In **Environment & tools**, choose **Official PyPI** and save to switch sources. The saved selection applies to subsequent installs and restarts. The preparer also accepts `--index-url`; `--wheelhouse` bypasses network indexes entirely. This does not change the machine's global pip settings. .NET, Homebrew and NuGet keep their own download sources.
+
+The WebUI does not accept arbitrary commands, package names or download URLs. Installation is serialized with builds. A failed network or package-manager operation remains in the task log and can be retried; successful dependencies are skipped on retry. Cancelling installation stops its process group, but tools already installed remain installed. Xcode, Apple SDKs, Metal tools and Windows LLVM/SPIRV-Cross are manual entries with official links.
 
 ## Workflow
 

@@ -59,16 +59,22 @@ async function loadEnvironment() {
   const selected = $('game').value;
   $('game').innerHTML = '<option value="">Detect from input</option>' + env.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
   $('game').value = selected;
-  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}"><div class="check-heading"><strong>${c.available?'✓':'!'} ${esc(c.name)}</strong><a href="${esc(c.help_url)}" target="_blank" rel="noopener noreferrer">${esc(t(c.available?'Official instructions':'Get / install'))} ↗</a></div>${c.available?'':`<p>${esc(t(c.help_text))}</p><small>${esc(c.path)}</small>`}</div>`).join('');
+  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}"><div class="check-heading"><strong>${c.available?'✓':'!'} ${esc(c.name)}</strong><a href="${esc(c.help_url)}" target="_blank" rel="noopener noreferrer">${esc(t(c.available?'Official instructions':'Get / install'))} ↗</a></div>${!c.available && c.auto_install?`<button data-install="${esc(c.name)}">${esc(t('Install'))}</button>`:''}${!c.available && !c.auto_install?`<span>${esc(t('Manual setup'))}</span>`:''}${c.install_method==='homebrew'?`<small>${esc(t('Installs through Homebrew'))}</small>`:''}${c.available?'':`<p>${esc(t(c.help_text))}</p><small>${esc(c.path)}</small>`}</div>`).join('');
+  $('install-all').disabled = !env.checks.some(c => !c.available && c.auto_install);
+  $('python-index').value = env.config.python_index;
   $('tools-path').value = env.config.tools || ''; $('sdk-path').value = env.config.sdk || ''; $('metal-path').value = env.config.metal || '';
   $('data-folder').textContent = t('Data folder: ') + env.data_directory;
   capability(); translateStatic();
 }
+const installStates = new Map();
 async function refresh() {
   const tasks = await api('tasks');
+  const changed = tasks.filter(task => task.kind === 'install' && ['succeeded','failed','cancelled','interrupted'].includes(task.status) && installStates.get(task.id) !== task.status);
+  for (const task of tasks.filter(task => task.kind === 'install')) installStates.set(task.id, task.status);
+  if (changed.length) await loadEnvironment();
   $('tasks').innerHTML = tasks.length ? tasks.map(task => {
     const finished = ['succeeded','failed','cancelled','interrupted'].includes(task.status);
-    return `<article class="task"><div><div class="task-title"><span class="badge">${esc(t(task.status))}</span>${esc(t(task.kind))} · ${esc(task.game || t('Auto detect'))} <small>${new Date(task.created*1000).toLocaleString(uiLanguage)}</small></div><div class="task-stage">${esc(t(task.message || task.stage))}</div></div><div class="actions"><button data-log="${task.id}">Log</button>${finished?`<button data-retry="${task.id}">Retry</button><button data-delete="${task.id}">Delete</button>`:`<button data-cancel="${task.id}">Cancel</button>`}</div><div class="downloads">${task.artifacts.map(name => `<a href="/api/tasks/${task.id}/artifacts/${name.split('/').map(encodeURIComponent).join('/')}">${esc(name)}</a>`).join('')}</div></article>`;
+    return `<article class="task"><div><div class="task-title"><span class="badge">${esc(t(task.status))}</span>${esc(t(task.kind))} · ${esc(task.kind === 'install' ? task.dependencies.join(', ') : (task.game || t('Auto detect')))} <small>${new Date(task.created*1000).toLocaleString(uiLanguage)}</small></div><div class="task-stage">${esc(t(task.message || task.stage))}</div></div><div class="actions"><button data-log="${task.id}">Log</button>${finished?`<button data-retry="${task.id}">Retry</button><button data-delete="${task.id}">Delete</button>`:`<button data-cancel="${task.id}">Cancel</button>`}</div><div class="downloads">${task.artifacts.map(name => `<a href="/api/tasks/${task.id}/artifacts/${name.split('/').map(encodeURIComponent).join('/')}">${esc(name)}</a>`).join('')}</div></article>`;
   }).join('') : '<p class="empty">No tasks yetask. Your next build starts above.</p>';
   translateStatic($('tasks'));
   if (logTask && $('logs').open) {
@@ -100,11 +106,17 @@ $('tasks').onclick = action(async e => {
   if(d.delete && confirm(t('Delete this task, its copied inputs, cache and outputs? Original imported files remain.'))) await api('tasks/'+d.delete,{method:'DELETE'});
   if(d.cancel||d.retry||d.delete) await refresh();
 });
+async function installDependencies(names) {
+  const result = await api('dependencies/install', {method:'POST', body:JSON.stringify(names ? {names} : {})});
+  $('settings').close(); logTask=result.id; logOffset=0; $('log-text').textContent=''; $('logs').showModal(); await refresh();
+}
+$('checks').onclick = action(async e => {if (e.target.dataset.install) await installDependencies([e.target.dataset.install]);});
+$('install-all').onclick = action(() => installDependencies());
 $('settings-button').onclick = () => $('settings').showModal();
 $('recheck').onclick = action(async () => {await loadEnvironment(); message('Environment refreshed.');});
 $('close-settings').onclick = () => $('settings').close();
 $('close-logs').onclick = () => $('logs').close();
-$('save-settings').onclick = action(async () => {await api('config',{method:'PUT',body:JSON.stringify({tools:$('tools-path').value,sdk:$('sdk-path').value,metal:$('metal-path').value})});await loadEnvironment();message('Tool paths saved.');});
+$('save-settings').onclick = action(async () => {await api('config',{method:'PUT',body:JSON.stringify({tools:$('tools-path').value,sdk:$('sdk-path').value,metal:$('metal-path').value,python_index:$('python-index').value})});await loadEnvironment();message('Settings saved.');});
 $('ui-language').value = uiLanguage;
 translateStatic();
 $('ui-language').onchange = action(async () => {uiLanguage = $('ui-language').value; localStorage.setItem('nx-ui-language', uiLanguage); translateStatic(); renderInputs(); await loadEnvironment(); await refresh();});

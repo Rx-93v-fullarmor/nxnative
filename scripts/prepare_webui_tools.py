@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--source-tools', default=SOURCE_TOOLS, help='Existing platform tool bundle to reuse')
     parser.add_argument('--python-runtime', type=Path, help='Optional redistributable Python runtime directory, with its license')
     parser.add_argument('--wheelhouse', type=Path, help='Install only from this offline wheel directory')
+    parser.add_argument('--index-url', default='https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple', help='Python package mirror (ignored with --wheelhouse)')
     args = parser.parse_args()
     if not args.out: parser.error('Set OUTPUT_DIR or pass --out')
     repo = Path(__file__).resolve().parents[1]
@@ -42,8 +43,9 @@ def main():
             parser.error('Python runtime must include its redistribution license')
         shutil.copytree(runtime, out / 'runtime', dirs_exist_ok=True)
     command = [sys.executable, '-m', 'pip', 'install', '--upgrade', '--target', str(out / 'python-packages'),
-               '-r', str(repo / 'dm/webui/requirements.txt'), 'lz4', 'capstone', 'fonttools', 'Pillow']
+               '-r', str(repo / 'dm/webui/requirements.txt')]
     if args.wheelhouse: command += ['--no-index', '--find-links', str(args.wheelhouse)]
+    else: command += ['--index-url', args.index_url]
     env = dict(os.environ, PIP_CACHE_DIR=str(out / 'pip-cache'), DOTNET_CLI_HOME=str(out / '.dotnet'),
                NUGET_PACKAGES=str(out / 'nuget'), DOTNET_CLI_TELEMETRY_OPTOUT='1')
     subprocess.run(command, check=True, env=env)

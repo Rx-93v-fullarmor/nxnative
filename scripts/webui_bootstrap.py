@@ -7,6 +7,9 @@ import re
 import subprocess
 import sys
 
+DEFAULT_INDEX = 'https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple'
+PYTHON_INDEXES = (DEFAULT_INDEX, 'https://pypi.org/simple')
+
 PACKAGES = {'fastapi': 'fastapi', 'uvicorn': 'uvicorn', 'lz4': 'lz4',
             'capstone': 'capstone', 'fonttools': 'fontTools', 'Pillow': 'PIL'}
 MINIMUM = {'fastapi': (0, 115), 'uvicorn': (0, 34)}
@@ -25,7 +28,9 @@ def missing_dependencies():
             missing.append(package)
     return missing
 
-def ensure_dependencies(root, repo):
+def ensure_dependencies(root, repo, index_url=DEFAULT_INDEX):
+    if index_url not in PYTHON_INDEXES:
+        raise ValueError('Unsupported Python package source')
     missing = missing_dependencies()
     if not missing:
         return
@@ -34,12 +39,13 @@ def ensure_dependencies(root, repo):
     python = runtime / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python3')
     env = dict(os.environ)
     env.pop('PYTHONPATH', None)
+    env.update(PIP_CONFIG_FILE=os.devnull, PIP_EXTRA_INDEX_URL='', PIP_CACHE_DIR=str(Path(root) / 'pip-cache'))
     try:
         if not python.is_file():
             subprocess.run([sys.executable, '-m', 'venv', str(runtime)], check=True)
         probe = [str(python), str(Path(__file__).resolve()), '--check']
         if subprocess.run(probe, stdout=subprocess.DEVNULL, env=env).returncode:
-            subprocess.run([str(python), '-m', 'pip', 'install', '--disable-pip-version-check',
+            subprocess.run([str(python), '-m', 'pip', 'install', '--disable-pip-version-check', '--index-url', index_url,
                             '-r', str(Path(repo) / 'dm/webui/requirements.txt')], check=True, env=env)
             subprocess.run(probe, check=True, env=env)
     except (OSError, subprocess.CalledProcessError) as error:

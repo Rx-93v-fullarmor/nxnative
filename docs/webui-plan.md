@@ -25,3 +25,10 @@ Build results: [Hades II verification summary](webui-hades2-validation.json). ma
 - Start without a directory prompt; use the Git-ignored `.webui-data` directory in the repository.
 - Reuse compatible installed Python dependencies, or automatically install them in a local venv without modifying system Python.
 - Allow repository-local data and dedicated subdirectories under the user home.
+
+## Dependency installation
+
+- Add allowlisted install tasks to the existing queue with JSONL/text logs, cancellation and retry.
+- Default Python to the Tsinghua mirror; allow selecting official PyPI without changing global pip settings.
+- Install Python packages, local .NET 10 SDK and nx_extract automatically; on Mac use existing Homebrew for xcodegen, zstd and spirv-cross.
+- Provide separate Windows/macOS instructions in the bilingual UI and documentation; retain manual Apple-tool and Windows native-tool setup.

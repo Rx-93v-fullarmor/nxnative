@@ -35,7 +35,9 @@ def create_app(root, token=None, config=None):
     token = token or secrets.token_urlsafe(32)
     config_path = root / 'config.json'
     config = config or (json.loads(config_path.read_text()) if config_path.exists() else {})
+    from .dependencies import DEFAULT_INDEX, PYTHON_INDEXES
     config.setdefault('tools', str(root / 'tools'))
+    config.setdefault('python_index', DEFAULT_INDEX)
     inbox = root / 'inbox'; inbox.mkdir(exist_ok=True)
     upload_lock = threading.Lock()
     jobs = Jobs(root, REPO, config)
@@ -84,17 +86,34 @@ def create_app(root, token=None, config=None):
     @app.put('/api/config')
     async def configure(request: Request):
         value = await request.json()
-        if any(k not in ('tools', 'sdk', 'metal') for k in value):
+        if any(k not in ('tools', 'sdk', 'metal', 'python_index') for k in value):
             raise ValueError('Unknown tool setting')
         with jobs.lock:
             if jobs.active or jobs.pending:
                 raise ValueError('Wait for queued tasks before changing tools.')
             for key, path in value.items():
+                if key == 'python_index':
+                    if path not in PYTHON_INDEXES: raise ValueError('Unsupported Python package source')
+                    config[key] = path
+                    continue
                 if not isinstance(path, str): raise ValueError('Expected a path')
                 config[key] = str(Path(path).expanduser().resolve()) if path else ''
             if not config.get('tools'): config['tools'] = str(root / 'tools')
             write_json(config_path, config)
         return environment(config)
+
+    @app.post('/api/dependencies/install')
+    async def install_dependencies(request: Request):
+        value = await request.json()
+        checks = environment(config)['checks']
+        eligible = {c['name'] for c in checks if c['auto_install'] and not c['available']}
+        names = value.get('names', sorted(eligible))
+        if not isinstance(names, list) or not names or any(not isinstance(n, str) or n not in eligible for n in names):
+            raise ValueError('Select missing dependencies that support automatic installation')
+        with jobs.lock:
+            if jobs.active or jobs.pending:
+                raise ValueError('Wait for queued tasks before installing dependencies.')
+            return {'id': jobs.create(dict(kind='install', dependencies=list(dict.fromkeys(names)), game='', files=[], targets=[], settings={}))}
 
     def upload_meta(identity):
         if not re.fullmatch('[a-f0-9]{32}', identity): raise ValueError('Invalid upload ID')
@@ -215,6 +234,10 @@ def create_app(root, token=None, config=None):
         folder = jobs.folder(identity)
         if summary(folder)['status'] not in TERMINAL: raise ValueError('Task is still active')
         task = json.loads((folder / 'task.json').read_text(encoding='utf-8'))
+        if task['kind'] == 'install':
+            with jobs.lock:
+                if jobs.active or jobs.pending: raise ValueError('Wait for queued tasks before installing dependencies.')
+                return {'id': jobs.create(task)}
         if (folder / 'private.keys').exists(): task['keys'] = str(folder / 'private.keys')
         if not Path(task['keys']).exists(): raise ValueError('Import keys again and create a new task')
         task['retry_of'] = identity

@@ -32,9 +32,9 @@ def main():
     config = json.loads(config_path.read_text(encoding='utf-8')) if config_path.exists() else {}
     toolroot = args.tools or os.environ.get('NX_TOOLS_DIR') or config.get('tools') or str(root / 'tools')
     sys.path.append(str(Path(toolroot).resolve() / 'python-packages'))
-    from scripts.webui_bootstrap import ensure_dependencies
+    from scripts.webui_bootstrap import DEFAULT_INDEX, ensure_dependencies
     try:
-        child_status = ensure_dependencies(root, repo)
+        child_status = ensure_dependencies(root, repo, config.get('python_index', DEFAULT_INDEX))
         if child_status is not None:
             return child_status
         import uvicorn

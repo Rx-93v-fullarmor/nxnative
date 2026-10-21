@@ -1,4 +1,5 @@
 """Profile and installed-tool capability checks without loading game files."""
+import importlib
 import importlib.util
 from pathlib import Path
 import platform
@@ -36,6 +37,8 @@ def profiles(system=None):
 
 
 def environment(config):
+    from .dependencies import install_method, tool_path
+    importlib.invalidate_caches()
     system = platform.system()
     root = Path(config['tools'])
     exe = '.exe' if system == 'Windows' else ''
@@ -47,13 +50,17 @@ def environment(config):
                         sdk=Path(config.get('sdk') or root / 'ios-cross/iPhoneOS26.5.sdk'),
                         metal=Path(config.get('metal') or root / 'metal/metal.exe'),
                         spirv_cross=root / 'spirv-cross-build/spirv-cross.exe')
-    checks = [dict(name=k, path=str(v), available=v.exists()) for k, v in expected.items()]
+    checks = [dict(name=k, path=str(v), available=v.is_dir() if k == 'sdk' else v.is_file()) for k, v in expected.items()]
     if system == 'Darwin':
         for name in ('xcodebuild', 'xcrun', 'xcodegen', 'make', 'zstd', 'spirv-cross', 'codesign', 'ditto'):
-            found = shutil.which(name)
+            found = shutil.which(name, path=tool_path(config))
             checks.append(dict(name=name, path=found or '', available=bool(found)))
+    packages = str(root / 'python-packages')
+    if packages not in sys.path: sys.path.append(packages)
     for name in ('lz4', 'capstone', 'fontTools', 'PIL'):
         checks.append(dict(name=name, path='Python package', available=importlib.util.find_spec(name) is not None))
     for check in checks:
         check['help_url'], check['help_text'] = DEPENDENCY_HELP[check['name']]
+        check['install_method'] = install_method(check['name'], config, system)
+        check['auto_install'] = check['install_method'] != 'manual'
     return dict(system=system, machine=platform.machine(), checks=checks, profiles=profiles(system))
