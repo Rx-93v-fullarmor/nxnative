@@ -5,7 +5,6 @@ import os
 import json
 from pathlib import Path
 import secrets
-import socket
 import sys
 import threading
 import webbrowser
@@ -24,19 +23,26 @@ def main():
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repo))
-    toolroot = args.tools or os.environ.get('NX_TOOLS_DIR')
-    if toolroot: sys.path.insert(0, str(Path(toolroot).resolve() / 'python-packages'))
-    # Release launchers select the bundled Python; source installs use this interpreter.
+    folder = args.data_dir or os.environ.get('NX_DATA_DIR') or str(repo / '.webui-data')
+    root = Path(folder).expanduser().resolve()
+    if root == Path(root.anchor) or root == Path.home().resolve():
+        parser.error('Choose a dedicated data subdirectory, not the filesystem or home root')
+    root.mkdir(parents=True, exist_ok=True)
+    config_path = root / 'config.json'
+    config = json.loads(config_path.read_text(encoding='utf-8')) if config_path.exists() else {}
+    toolroot = args.tools or os.environ.get('NX_TOOLS_DIR') or config.get('tools') or str(root / 'tools')
+    sys.path.append(str(Path(toolroot).resolve() / 'python-packages'))
+    from scripts.webui_bootstrap import ensure_dependencies
     try:
+        child_status = ensure_dependencies(root, repo)
+        if child_status is not None:
+            return child_status
         import uvicorn
         from dm.webui.server import create_app, data_directory
-    except ImportError:
-        parser.error('Web dependencies are missing. Install dm/webui/requirements.txt or use a prepared release bundle.')
-    folder = args.data_dir or os.environ.get('NX_DATA_DIR', '')
-    if not folder:
-        if not sys.stdin.isatty(): parser.error('Set DATA_DIR or pass --data-dir')
-        folder = input('Data folder (outside your home and repository): ').strip().strip('"')
-    root = data_directory(folder)
+        root = data_directory(root)
+    except (RuntimeError, ImportError, ValueError, OSError) as error:
+        parser.error(str(error))
+    print('Data folder: ' + str(root), flush=True)
     token = secrets.token_urlsafe(32)
     config_path = root / 'config.json'
     config = json.loads(config_path.read_text(encoding='utf-8')) if config_path.exists() else {}
@@ -53,4 +59,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

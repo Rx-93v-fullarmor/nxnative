@@ -4,18 +4,15 @@ The WebUI uploads NSP/XCI files and keys, inspects content metadata, converts st
 
 ## Start
 
-Use Python 3.11 or newer and a dedicated data directory on your game drive, outside the repository and your home directory:
+Use Python 3.11 or newer. Run `scripts/start_webui.command` on macOS, `scripts/start_webui.bat` on Windows, or:
 
 ```sh
-python -m pip install -r dm/webui/requirements.txt
-python scripts/start_webui.py --data-dir /Volumes/Games/nxnative-webui
+python3 scripts/start_webui.py
 ```
 
-Windows example with prepared tools:
+Startup does not ask for a data path. It defaults to `.webui-data/` inside the repository (ignored by Git), including uploads, keys, tasks, caches and a local Python environment. Existing compatible Python dependencies are reused without running pip. Missing or incompatible dependencies are automatically installed into `.webui-data/venv`; a completed environment is reused on later launches. The system Python environment is not modified. Python itself must already be installed; first-time dependency setup needs network access.
 
-```powershell
-python scripts/start_webui.py --data-dir D:/Games/nxnative-webui --tools D:/Tools/nxnative
-```
+You may still override the location with `--data-dir` or `NX_DATA_DIR`, including a repository sibling under your home folder. `--tools` selects an existing prepared tools folder. Dependencies and caches follow the chosen data directory.
 
 Open the URL printed by the launcher. The token is exchanged for a local session cookie and removed from the address bar. The service rejects foreign origins and non-loopback hosts. It is a local, single-user tool; do not expose it through a proxy or a public interface. Only one process may use a given data folder.
 
@@ -78,4 +75,4 @@ python -m dm.webui.tests.integration_nsp --nsp /path/to/game.nsp --keys /path/to
 
 The integration runner exercises the real HTTP task API, metadata inspection, extraction manifest, and optional full build. Results stay on the game drive. IPAs are unsigned; this workflow neither signs nor installs them on a device. macOS packages are ad-hoc signed for local use and need separate Mac validation.
 
-Validated on Windows: Hades II base version 0.0.126424 produced an unsigned IPA with 88 shader keys and 5,418 archive entries. See [the verification summary](webui-hades2-validation.json). The WebUI regression suite contains 23 tests. Browser checks cover inspection/download links and Chinese/English switching, persistence, and independent game language.
+Validated on Windows: Hades II base version 0.0.126424 produced an unsigned IPA with 88 shader keys and 5,418 archive entries. See [the verification summary](webui-hades2-validation.json). The WebUI regression suite includes startup and dependency-help regression tests. Browser checks cover inspection/download links and Chinese/English switching, persistence, and independent game language.

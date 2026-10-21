@@ -47,8 +47,6 @@ def main():
         a.folder = input('NSP folder: ').strip().strip('"')
     if not a.keys or not a.tools: ap.error('Supply --keys and --tools, or fill the settings block')
     folder, tools = Path(a.folder).resolve(), a.tools.resolve()
-    if folder.is_relative_to(repo) or folder.is_relative_to(Path.home()):
-        ap.error('Keep game/build data outside the repository and home directory')
     a.metal = a.metal or Path(os.environ.get('METAL_EXE') or tools / 'metal/metal.exe')
     if not a.metal.is_file(): ap.error('Supply --metal with your installed Metal compiler')
     sys.path.insert(0, str(repo / 'dm/games'))

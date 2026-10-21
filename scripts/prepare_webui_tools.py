@@ -25,8 +25,8 @@ def main():
     if not args.out: parser.error('Set OUTPUT_DIR or pass --out')
     repo = Path(__file__).resolve().parents[1]
     out = Path(args.out).expanduser().resolve()
-    if out.is_relative_to(repo) or out.is_relative_to(Path.home()) or out == Path(out.anchor):
-        parser.error('Use a dedicated folder outside the repository and home directory')
+    if out == Path.home().resolve() or out == Path(out.anchor):
+        parser.error('Use a dedicated subdirectory, not the filesystem or home root')
     out.mkdir(parents=True, exist_ok=True)
     if args.source_tools:
         source = Path(args.source_tools).resolve()

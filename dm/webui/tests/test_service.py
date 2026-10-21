@@ -80,8 +80,10 @@ class Service(unittest.TestCase):
         self.assertEqual(self.client.get(f'/api/tasks/{identity}/artifacts/private.keys').status_code,404)
 
     def test_data_directory_policy(self):
-        with self.assertRaises(ValueError): data_directory(REPO/'data')
-        with self.assertRaises(ValueError): data_directory(Path.home()/'data')
+        with self.assertRaises(ValueError): data_directory(Path.home())
+        with self.assertRaises(ValueError): data_directory(Path(self.root.anchor))
+        with patch('dm.webui.server.REPO', self.root), patch('pathlib.Path.home', return_value=self.root):
+            self.assertEqual(data_directory(self.root/'.webui-data'), self.root/'.webui-data')
 
     def test_one_service_per_data_folder(self):
         with self.assertRaisesRegex(ValueError, 'already using'):

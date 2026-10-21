@@ -23,8 +23,8 @@ OPTIONS = {'DM_LANG': ['system', 'zh-Hans', 'zh-Hant', 'en-US', 'ja'],
 
 def data_directory(path):
     path = Path(path).expanduser().resolve()
-    if path == Path(path.anchor) or path.is_relative_to(REPO) or path.is_relative_to(Path.home()):
-        raise ValueError('Choose a dedicated data folder outside the repository and your home directory.')
+    if path == Path(path.anchor) or path == Path.home().resolve():
+        raise ValueError('Choose a dedicated data subdirectory, not the filesystem or home root.')
     path.mkdir(parents=True, exist_ok=True)
     return path
 

@@ -19,3 +19,9 @@ Acceptance: use Hades II base NSP `0100A00019DE0000`, version `0.0.126424`. Veri
 - [x] Add a persistent Chinese/English interface switch, independent from game language.
 
 Build results: [Hades II verification summary](webui-hades2-validation.json). macOS packaging and iOS gameplay were not executed on Apple hardware.
+
+## Startup defaults
+
+- Start without a directory prompt; use the Git-ignored `.webui-data` directory in the repository.
+- Reuse compatible installed Python dependencies, or automatically install them in a local venv without modifying system Python.
+- Allow repository-local data and dedicated subdirectories under the user home.
