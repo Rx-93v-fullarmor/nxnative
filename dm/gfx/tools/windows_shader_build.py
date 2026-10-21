@@ -20,10 +20,20 @@ def replace(source, old, new):
     return source.replace(old, new)
 
 
+
+def cache_directory(output, directory=None):
+    """Keep Python-only shader cache IO usable beyond Windows MAX_PATH."""
+    path = str(Path(directory or Path(output) / 'mac/cas').resolve())
+    if os.name == 'nt' and not str(path).startswith('\\\\?\\'):
+        path = '\\\\?\\UNC\\' + path[2:] if path.startswith('\\\\') else '\\\\?\\' + path
+    return path
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     for name in ('profile', 'packages', 'out', 'metal', 'spirv_cross', 'dotnet'):
         ap.add_argument('--' + name.replace('_', '-'), type=Path, required=True)
+    ap.add_argument('--cache-dir', type=Path, help='Shared content-addressed shader cache')
     ap.add_argument('--jobs', type=int, default=4)
     ap.add_argument('--prepare-only', action='store_true')
     ap.add_argument('keys', nargs='*')
@@ -112,6 +122,10 @@ def windows_replace(source, destination):
     shutil.copyfile(__file__, tools / 'windows_shader_build.py')
     env = dict(os.environ, DM_GAME=str(a.profile.resolve()), XLATE=str(original / 'dmsh_xlate_bin/dmsh_xlate'),
                PYTHONUTF8='1', J=str(a.jobs), IOSOUT=str(root / 'ios'), WORK=str(root / 'work'))
+    # CAS holds only Python-managed files; external compilers use WORK and IOSOUT.
+    # Prefix the cache root so atomic copies and JSON writes can exceed MAX_PATH.
+    env['DMSH_CAS'] = cache_directory(root, a.cache_dir or env.get('DMSH_CAS'))
+    print('Shader cache: ' + env['DMSH_CAS'], flush=True)
     (root / 'work').mkdir(exist_ok=True)
     # Verify the original translator before generating a distinct Windows lock.
     lock = dict(x.split('\t', 1) for x in (original / 'dmsh_chain.lock').read_text(encoding='utf-8').splitlines() if '\t' in x and not x.startswith('#'))

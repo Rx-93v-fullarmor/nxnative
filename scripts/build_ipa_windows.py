@@ -165,7 +165,7 @@ def main():
     run('windows_shaders', [python, repo / 'dm/gfx/tools/windows_shader_build.py', '--profile', profile,
                             '--packages', shader / 'packages', '--out', windows, '--metal', a.metal.resolve(),
                             '--spirv-cross', tools / 'spirv-cross-build/spirv-cross.exe',
-                            '--dotnet', tools / 'dotnet/dotnet.exe', '--jobs', a.jobs])
+                            '--dotnet', tools / 'dotnet/dotnet.exe', '--cache-dir', tools / 'shader-cache', '--jobs', a.jobs])
     chain = re.search(r'#define DMSH_CHAIN "([a-f0-9]+)"', g.table('dmsh_chain.h').read_text())[1]
     run('c1_guard', [python, repo / 'dm/gfx/tools/c1_guard.py', windows / ('mac/b-' + chain), g.table('c1_full.tsv')])
     host = build / 'windows_host'
