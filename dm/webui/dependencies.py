@@ -34,8 +34,8 @@ def install_method(name, config, system=None, discovery=None):
         if name in ('clang', 'lld', 'spirv_cross') and platform.machine().lower() in ('amd64', 'x86_64', 'arm64', 'aarch64'):
             return 'portable'
         if name == 'sdk':
-            from .apple_tools import sdk_archive
-            return 'import' if sdk_archive(config, discovery) else 'manual'
+            from .apple_tools import sdk_install_method
+            return sdk_install_method(config, discovery)
     if name == 'mac_metal' and system == 'Darwin' and probe(['/usr/bin/xcodebuild', '-version']).startswith('Xcode '):
         return 'xcode'
     if name in BREW_PACKAGES and system == 'Darwin':

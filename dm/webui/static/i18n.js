@@ -147,6 +147,17 @@ Object.assign(zhMessages, {
 });
 Object.assign(zhMessages, {"Python packages use the Tsinghua mirror by default. Automatic installers keep logs. Downloaded iPhoneOS SDKs are detected and can be imported locally.": "Python 依赖默认使用清华镜像。自动安装过程会记录日志，已下载的 iPhoneOS SDK 可自动检测和本地导入。"});
 Object.assign(zhMessages, {"With Xcode installed and selected, downloads and installs its Metal Toolchain through the official xcodebuild command. Finish Xcode first-launch setup before installing.": "已安装并选中 Xcode 后，可通过官方 xcodebuild 命令自动下载并安装 Metal Toolchain。请先完成 Xcode 首次启动设置。", "Installs through selected Xcode": "通过当前选中的 Xcode 安装"});
+Object.assign(zhMessages, {
+  "iPhoneOS SDK source": "iPhoneOS SDK 来源",
+  "SDK source": "SDK 来源",
+  "xybp888/iOS-SDKs (third-party, verified 26.5)": "xybp888/iOS-SDKs（第三方，已验证 26.5）",
+  "Local SDK or archive only": "仅使用本地 SDK 或压缩包",
+  "Third-party SDK: xybp888/iOS-SDKs, SHA-256 verified": "第三方 SDK：xybp888/iOS-SDKs，校验 SHA-256",
+  "Missing SDKs download from xybp888/iOS-SDKs (third-party), pinned to iPhoneOS 26.5 with SHA-256 verification. Windows links are materialized automatically. Existing valid SDKs are reused; local archives remain supported.": "缺少 SDK 时，从第三方仓库 xybp888/iOS-SDKs 下载固定的 iPhoneOS 26.5 发布包并校验 SHA-256，自动处理 Windows 符号链接兼容性。已有可用 SDK 会直接复用，也支持本地压缩包。",
+  "Double-click scripts/start_webui.bat. First launch installs Python inside the project using the Huawei Cloud mirror, with official-source fallback and SHA-256 verification. Python packages use Tsinghua by default. Existing environments are reused; startup output is saved in .webui-data/startup.log. Use this panel to install .NET 10, nx_extract, clang/lld and SPIRV-Cross automatically. Missing iPhoneOS SDKs download from the verified xybp888/iOS-SDKs release. Windows Metal tools still download through Apple after sign-in. Existing SDKs and local archives remain supported. Windows supports iOS packaging only.": "双击 scripts/start_webui.bat。首次从华为云镜像在项目内安装 Python，支持官方源回退和 SHA-256 校验；依赖包使用清华源，已有环境直接复用。面板可自动安装 .NET 10、nx_extract、clang/lld 和 SPIRV-Cross；缺少 iPhoneOS SDK 时从已验证的 xybp888/iOS-SDKs 发布包下载。Windows Metal 工具仍需登录 Apple 官网下载。支持已有 SDK 和本地压缩包，Windows 仅支持打包 iOS。"
+});
+Object.assign(zhMessages, {"Windows Metal tools come from Apple; choose the iPhoneOS SDK source above. See docs/webui.md for offline bundles.": "Windows Metal 工具通过 Apple 获取，iPhoneOS SDK 可在上方选择下载来源。离线工具包说明见 docs/webui.md。"});
+Object.assign(zhMessages, {"Local mode: discovers existing iPhoneOS SDKs and imports local archives. Automatic SDK network downloads are disabled.": "本地模式：检测已有 iPhoneOS SDK 并导入本地压缩包，不会自动联网下载 SDK。"});
 let uiLanguage = localStorage.getItem('nx-ui-language') || (navigator.language.startsWith('zh') ? 'zh-CN' : 'en');
 if (!['zh-CN', 'en'].includes(uiLanguage)) uiLanguage = 'en';
 function t(text) {

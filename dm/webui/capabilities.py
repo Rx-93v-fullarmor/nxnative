@@ -21,6 +21,8 @@ DEPENDENCY_HELP.update({'clang': ('https://github.com/mstorsjo/llvm-mingw/releas
 
 DEPENDENCY_HELP['mac_metal'] = ('https://developer.apple.com/documentation/Xcode/downloading-and-installing-additional-xcode-components', 'With Xcode installed and selected, downloads and installs its Metal Toolchain through the official xcodebuild command. Finish Xcode first-launch setup before installing.')
 
+DEPENDENCY_HELP['sdk'] = ('https://github.com/xybp888/iOS-SDKs/releases/tag/iOS26.5-SDKs', 'Missing SDKs download from xybp888/iOS-SDKs (third-party), pinned to iPhoneOS 26.5 with SHA-256 verification. Windows links are materialized automatically. Existing valid SDKs are reused; local archives remain supported.')
+
 def profiles(system=None):
     system = system or platform.system()
     result = []
@@ -87,6 +89,8 @@ def environment(config):
     for check in checks:
         check['label'] = {'dotnet': '.NET 10 SDK', 'macos_sdk': 'macOS SDK', 'iphoneos_sdk': 'iPhoneOS SDK (iOS packaging)', 'mac_metal': 'Xcode Metal compiler'}.get(check['name'], check['name'])
         check['help_url'], check['help_text'] = DEPENDENCY_HELP[check['name']]
+        if check['name'] == 'sdk' and config.get('sdk_source') == 'local':
+            check['help_text'] = 'Local mode: discovers existing iPhoneOS SDKs and imports local archives. Automatic SDK network downloads are disabled.'
         check['install_method'] = install_method(check['name'], config, system, discovery)
         check['auto_install'] = check['install_method'] != 'manual'
     return dict(system=system, machine=platform.machine(), checks=checks, profiles=profiles(system), apple_tools=discovery)

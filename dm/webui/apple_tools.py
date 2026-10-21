@@ -1,5 +1,8 @@
 """Bounded discovery and local import of user-supplied Apple tools."""
 import json
+import posixpath
+import stat
+import zipfile
 import os
 from pathlib import Path
 import platform
@@ -164,28 +167,135 @@ def remove_stage(stage, root):
     shutil.rmtree(stage, ignore_errors=True)
 
 
-def install_sdk(folder, config):
+SDK_REPOSITORY = {
+    'repository': 'https://github.com/xybp888/iOS-SDKs',
+    'release': 'iOS26.5-SDKs',
+    'version': '26.5',
+    'url': 'https://github.com/xybp888/iOS-SDKs/releases/download/iOS26.5-SDKs/iPhoneOS26.5.sdk.zip',
+    'sha256': 'bed0f155d84e98ad8273b3bd57a0816ae5e772e1aa8539e6d79476221ce33173',
+}
+SDK_SOURCES = ('xybp888', 'local')
+
+
+def sdk_install_method(config, discovery=None):
+    selected = config.get('sdk_source', 'xybp888')
+    if selected not in SDK_SOURCES:
+        return 'manual'
+    if config.get('sdk_archive') and sdk_archive(config, discovery):
+        return 'import'
+    if selected == 'xybp888':
+        return 'repository'
+    return 'import' if sdk_archive(config, discovery) else 'manual'
+
+
+def filesystem_path(path):
+    path = Path(path).resolve()
+    # SDK framework paths can exceed MAX_PATH in a deeply nested checkout.
+    if os.name == 'nt' and not str(path).startswith('\\\\?\\'):
+        text = str(path)
+        path = Path('\\\\?\\UNC\\' + text[2:] if text.startswith('\\\\') else '\\\\?\\' + text)
+    return path
+
+
+def unpack_sdk(archive, destination):
     from .dependencies import unpack
+    if archive.suffix.lower() != '.zip':
+        unpack(archive, destination)
+        return
+    root = filesystem_path(destination)
+    with zipfile.ZipFile(archive) as source:
+        files, links = [], {}
+        for item in source.infolist():
+            name = item.filename.rstrip('/')
+            parts = name.split('/')
+            if not name or parts[0] == '__MACOSX':
+                continue
+            if name.startswith('/') or any(part in ('', '.', '..') for part in parts) or ':' in name or '\\' in name:
+                raise ValueError('Unsafe SDK archive member')
+            path = root.joinpath(*parts)
+            if not path.resolve().is_relative_to(root):
+                raise ValueError('Unsafe SDK archive member')
+            if stat.S_ISLNK(item.external_attr >> 16):
+                if item.file_size > 4096:
+                    raise ValueError('Invalid SDK archive link')
+                target = source.read(item).decode('utf-8')
+                if not target or target.startswith('/') or ':' in target or '\\' in target or '\0' in target:
+                    raise ValueError('Unsafe SDK archive link')
+                normalized = posixpath.normpath(posixpath.join(posixpath.dirname(name), target))
+                sdk_roots = [i for i, part in enumerate(parts) if part.lower().endswith('.sdk')]
+                sdk_root = '/'.join(parts[:sdk_roots[0]+1]) + '/' if sdk_roots else ''
+                if not sdk_root or not normalized.startswith(sdk_root):
+                    raise ValueError('SDK archive link leaves its SDK')
+                links[name] = normalized
+            else:
+                files.append((item, path))
+        for item, path in files:
+            if item.is_dir():
+                path.mkdir(parents=True, exist_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with source.open(item) as incoming, path.open('wb') as outgoing:
+                    shutil.copyfileobj(incoming, outgoing)
+        # Resolve links only within the extracted SDK. Copies work without
+        # Windows Developer Mode, administrator access or symlink privileges.
+        pending = dict(links)
+        while pending:
+            progress = False
+            for name, target in list(pending.items()):
+                original, output = root.joinpath(*target.split('/')), root.joinpath(*name.split('/'))
+                if not original.exists():
+                    continue
+                if original.is_dir() and any(other.startswith(target + '/') for other in pending):
+                    continue
+                output.parent.mkdir(parents=True, exist_ok=True)
+                if original.is_dir():
+                    shutil.copytree(original, output, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(original, output)
+                del pending[name]
+                progress = True
+            if not progress:
+                raise ValueError('SDK archive contains unresolved or cyclic links')
+        if links:
+            print('Materialized SDK archive links: ' + str(len(links)), flush=True)
+
+
+def install_sdk(folder, config):
+    from .dependencies import download
     from .jobs import emit
-    archive = sdk_archive(config)
+    method = sdk_install_method(config)
+    downloaded = method == 'repository'
+    if downloaded:
+        archive = folder / 'iPhoneOS26.5.sdk.zip'
+        emit(folder, 'stage', name='Downloading iPhoneOS 26.5 SDK from xybp888/iOS-SDKs')
+        print('Third-party SDK source: ' + SDK_REPOSITORY['url'], flush=True)
+        download(SDK_REPOSITORY['url'], archive, folder, SDK_REPOSITORY['sha256'], algorithm='sha256', label='iPhoneOS SDK')
+    else:
+        archive = sdk_archive(config)
     if not archive:
         raise ValueError('Download an iPhoneOS SDK archive first, or choose one of the discovered archives.')
     root = Path(config['tools']).resolve()
     stage = root / ('.sdk-install-' + folder.name)
     stage.mkdir(parents=True, exist_ok=False)
     try:
-        emit(folder, 'stage', name='Extracting user-supplied iPhoneOS SDK')
+        emit(folder, 'stage', name='Extracting and adapting iPhoneOS SDK for Windows')
         print('SDK archive: ' + str(archive), flush=True)
-        unpack(archive, stage)
-        candidates = [info for path in stage.rglob('*.sdk') if (info := sdk_info(path))]
+        unpack_sdk(archive, stage)
+        candidates = [info for path in bounded_entries(stage, depth=5, budget=5000) if (info := sdk_info(path))]
         if len(candidates) != 1:
             raise ValueError('Archive must contain exactly one complete iPhoneOS SDK version 26.5 or newer; simulator and macOS SDKs are not accepted.')
+        if downloaded and candidates[0]['version'] != SDK_REPOSITORY['version']:
+            raise ValueError('Downloaded SDK version does not match the pinned release')
         source = Path(candidates[0]['path'])
+        if downloaded:
+            (source / 'nxnative-sdk-source.json').write_text(json.dumps(SDK_REPOSITORY, indent=2) + '\n', encoding='utf-8')
         destination = root / 'ios-cross' / ('iPhoneOS' + candidates[0]['version'] + '.sdk')
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
             raise ValueError('SDK destination already exists. Repair or choose the existing SDK in Settings.')
         source.rename(destination)
         print('SDK configured automatically: ' + str(destination), flush=True)
+        if downloaded:
+            archive.unlink(missing_ok=True)
     finally:
         remove_stage(stage, root)

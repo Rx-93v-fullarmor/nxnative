@@ -38,6 +38,7 @@ def create_app(root, token=None, config=None):
     from .dependencies import DEFAULT_INDEX, PYTHON_INDEXES
     config.setdefault('tools', str(root / 'tools'))
     config.setdefault('python_index', DEFAULT_INDEX)
+    config.setdefault('sdk_source', 'xybp888')
     inbox = root / 'inbox'; inbox.mkdir(exist_ok=True)
     upload_lock = threading.Lock()
     jobs = Jobs(root, REPO, config)
@@ -88,12 +89,18 @@ def create_app(root, token=None, config=None):
     @app.put('/api/config')
     async def configure(request: Request):
         value = await request.json()
-        if any(k not in ('tools', 'sdk', 'metal', 'python_index', 'sdk_search', 'sdk_archive') for k in value):
+        if any(k not in ('tools', 'sdk', 'metal', 'python_index', 'sdk_search', 'sdk_archive', 'sdk_source') for k in value):
             raise ValueError('Unknown tool setting')
         with jobs.lock:
             if jobs.active or jobs.pending:
                 raise ValueError('Wait for queued tasks before changing tools.')
             for key, path in value.items():
+                if key == 'sdk_source':
+                    from .apple_tools import SDK_SOURCES
+                    if path not in SDK_SOURCES: raise ValueError('Unsupported SDK source')
+                    config[key] = path
+                    if 'sdk_archive' not in value: config['sdk_archive'] = ''
+                    continue
                 if key == 'python_index':
                     if path not in PYTHON_INDEXES: raise ValueError('Unsupported Python package source')
                     config[key] = path

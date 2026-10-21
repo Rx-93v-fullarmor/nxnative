@@ -64,7 +64,7 @@ class AppleSDKDiscovery(unittest.TestCase):
                     if file.is_file(): output.write(file, file.relative_to(source.parent))
             before=archive.read_bytes()
             task=root/'task';task.mkdir(); tools=root/'tools'
-            config={'tools':str(tools), 'sdk_search':str(archive.parent)}
+            config={'tools':str(tools), 'sdk_search':str(archive.parent), 'sdk_source':'local'}
             with patch.object(apple, 'search_locations', return_value=[archive.parent,tools/'ios-cross']), patch.object(apple.platform,'system',return_value='Windows'):
                 self.assertEqual(deps.install_method('sdk',config,'Windows'),'import')
                 apple.install_sdk(task,config)
