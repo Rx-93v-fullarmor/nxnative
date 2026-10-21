@@ -114,7 +114,7 @@ class Service(unittest.TestCase):
             self.assertTrue(check['help_url'].startswith('https://'))
             self.assertTrue(check['help_text'])
         self.assertFalse(next(c for c in checks if c['name']=='metal')['available'])
-        self.assertEqual(next(c for c in checks if c['name']=='metal')['help_url'],'https://developer.apple.com/metal/tools/')
+        self.assertEqual(next(c for c in checks if c['name']=='metal')['help_url'],'https://developer.apple.com/download/all/?q=metal%20developer%20tools%20for%20windows')
 
     def test_windows_capabilities(self):
         for profile in profiles('Windows'):

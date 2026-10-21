@@ -45,6 +45,8 @@ def execute(folder):
         from .dependencies import install
         install(folder, task, config, run)
         return
+    from .apple_tools import effective_config
+    config = effective_config(config)
     toolroot = Path(config['tools'])
     extractor = toolroot / 'nx_extract' / ('nx_extract.exe' if os.name == 'nt' else 'nx_extract')
     if not extractor.is_file():

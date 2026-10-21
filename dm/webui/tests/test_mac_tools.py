@@ -74,3 +74,20 @@ class MacTools(unittest.TestCase):
             with patch.object(deps.platform, 'system', return_value='Darwin'), patch.object(deps, 'brew_path', return_value='/brew'), patch('dm.webui.capabilities.environment', side_effect=environment), patch.object(deps, 'install_mac_tool', side_effect=fallback) as install:
                 deps.install(root, {'dependencies':['zstd']}, {'tools':str(root/'tools')}, Mock(side_effect=RuntimeError('brew failed')))
                 install.assert_called_once()
+
+    def test_metal_installer_requires_full_xcode(self):
+        with patch.object(deps, 'probe', return_value='Xcode 26.5\nBuild version 17F1'):
+            self.assertEqual(deps.install_method('mac_metal', {}, 'Darwin'), 'xcode')
+            self.assertEqual(deps.install_method('mac_metal', {}, 'Windows'), 'manual')
+        with patch.object(deps, 'probe', return_value=''):
+            self.assertEqual(deps.install_method('mac_metal', {}, 'Darwin'), 'manual')
+
+    def test_metal_uses_only_official_component_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); ready={'value':False}
+            def environment(config):return {'checks':[dict(name='mac_metal',available=ready['value'])]}
+            def run(folder,command):
+                self.assertEqual(command,['/usr/bin/xcodebuild','-downloadComponent','metalToolchain'])
+                ready['value']=True
+            with patch.object(deps.platform,'system',return_value='Darwin'),patch.object(deps,'probe',return_value='Xcode 26.5'),patch('dm.webui.capabilities.environment',side_effect=environment):
+                deps.install(root,{'dependencies':['mac_metal']},{'tools':str(root/'tools')},run)

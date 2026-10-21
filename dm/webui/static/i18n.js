@@ -128,6 +128,25 @@ Object.assign(zhMessages, {
   "Install fonttools into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.": "在 WebUI 使用的 Python 环境中安装 fonttools，或对当前工具目录重新运行 scripts/prepare_webui_tools.py。",
   "Install Pillow into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.": "在 WebUI 使用的 Python 环境中安装 Pillow，或对当前工具目录重新运行 scripts/prepare_webui_tools.py。"
 });
+Object.assign(zhMessages, {
+  "SDK search folder": "SDK 搜索目录",
+  "Optional additional folder": "可选，指定其他下载或存放目录",
+  "Verified portable tools; no administrator access required": "校验后安装到项目内，无需管理员权限",
+  "Extracts your downloaded SDK archive locally": "在本地解压用户已下载的 SDK 压缩包",
+  "Searches Downloads, project tools and the optional SDK search folder. Requires a complete iPhoneOS SDK version 26.5 or newer.": "自动搜索下载目录、项目工具目录和指定的 SDK 搜索目录。需要完整的 iPhoneOS 26.5 或更新版本 SDK。",
+  "Detected iPhoneOS SDKs": "找到的 iPhoneOS SDK",
+  "Choose an SDK": "选择 SDK 版本与路径",
+  "Extract and configure SDK": "解压并配置 SDK",
+  "No complete iPhoneOS SDK found. Finish your download, then click Recheck.": "尚未找到完整的 iPhoneOS SDK。下载完成后点击“重新检测”。",
+  "Downloads verified portable LLVM together with lld into the project. Checks real ARM64 Apple compilation before installation. No Visual Studio or administrator access is needed.": "自动下载并校验便携 LLVM 和 lld，安装前实际验证 ARM64 Apple 目标编译。无需 Visual Studio 或管理员权限。",
+  "Installed together with clang. Verifies Darwin linking before installation; an existing complete toolchain is reused.": "与 clang 一并安装，安装前验证 Darwin 链接；已有完整工具链会直接复用。",
+  "Downloads verified SPIRV-Cross sources and builds with portable LLVM. Installs the C++ compiler automatically if needed; no Visual Studio or CMake is required.": "自动下载并校验 SPIRV-Cross 源码，使用便携 LLVM 编译。缺少 C++ 编译器时自动安装，无需 Visual Studio 或 CMake。",
+  "Finds complete iPhoneOS SDKs version 26.5 or newer in Downloads, the project and the configured search folder. Simulator and macOS SDKs are rejected. A discovered SDK archive can be extracted and configured locally. Obtain the SDK from your own Xcode installation.": "搜索下载目录、项目目录和指定目录中的 iPhoneOS 26.5 或更新 SDK，排除模拟器和 macOS SDK。找到压缩包后可一键解压并配置。请从自己的 Xcode 安装中取得 SDK。",
+  "Sign in on the Apple website to download and install Metal Developer Tools for Windows. Recheck detects standard installations automatically. For a custom installation, select metal.exe below. Apple login stays in your browser.": "在 Apple 官网登录后下载并安装 Windows Metal Developer Tools，再点击“重新检测”自动识别标准安装目录。自定义安装目录可在下方填写 metal.exe 路径。Apple 登录始终在浏览器内完成。",
+  "Double-click scripts/start_webui.bat. First launch installs Python inside the project using the Huawei Cloud mirror, with official-source fallback and SHA-256 verification. Python packages use Tsinghua by default. Existing environments are reused; startup output is saved in .webui-data/startup.log. Use this panel to install .NET 10, nx_extract, clang/lld and SPIRV-Cross automatically. Download Apple tools after signing in on the Apple website. Recheck finds installed Metal tools and complete iPhoneOS SDKs; discovered SDK archives can be extracted locally. Windows supports iOS packaging only.": "双击 scripts/start_webui.bat，首次从华为云镜像在项目内安装 Python，支持官方源回退及 SHA-256 校验；Python 依赖使用清华源，已有环境直接复用。面板可自动安装 .NET 10、nx_extract、clang/lld 和 SPIRV-Cross。Apple 工具在官网登录后下载；重新检测可识别标准目录的 Metal 工具及完整 iPhoneOS SDK，SDK 压缩包可一键解压配置。Windows 仅支持打包 iOS。"
+});
+Object.assign(zhMessages, {"Python packages use the Tsinghua mirror by default. Automatic installers keep logs. Downloaded iPhoneOS SDKs are detected and can be imported locally.": "Python 依赖默认使用清华镜像。自动安装过程会记录日志，已下载的 iPhoneOS SDK 可自动检测和本地导入。"});
+Object.assign(zhMessages, {"With Xcode installed and selected, downloads and installs its Metal Toolchain through the official xcodebuild command. Finish Xcode first-launch setup before installing.": "已安装并选中 Xcode 后，可通过官方 xcodebuild 命令自动下载并安装 Metal Toolchain。请先完成 Xcode 首次启动设置。", "Installs through selected Xcode": "通过当前选中的 Xcode 安装"});
 let uiLanguage = localStorage.getItem('nx-ui-language') || (navigator.language.startsWith('zh') ? 'zh-CN' : 'en');
 if (!['zh-CN', 'en'].includes(uiLanguage)) uiLanguage = 'en';
 function t(text) {

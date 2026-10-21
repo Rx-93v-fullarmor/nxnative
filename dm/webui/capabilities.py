@@ -17,6 +17,10 @@ DEPENDENCY_HELP = {'extractor': ('https://github.com/xbunax/nxnative/blob/codex/
 DEPENDENCY_HELP.update({name: ('https://developer.apple.com/xcode/resources/', 'Provided by the selected Xcode installation. Finish Xcode setup and select its command-line tools.') for name in ('macos_sdk', 'iphoneos_sdk', 'mac_metal')})
 DEPENDENCY_HELP['dotnet'] = ('https://dotnet.microsoft.com/en-us/download/dotnet/10.0', '.NET 10 SDK is a build-time dependency for the C# extractor and shader tools on both Mac and Windows. Existing compatible SDKs are reused; built apps do not require .NET.')
 
+DEPENDENCY_HELP.update({'clang': ('https://github.com/mstorsjo/llvm-mingw/releases/tag/20261020', 'Downloads verified portable LLVM together with lld into the project. Checks real ARM64 Apple compilation before installation. No Visual Studio or administrator access is needed.'), 'lld': ('https://github.com/mstorsjo/llvm-mingw/releases/tag/20261020', 'Installed together with clang. Verifies Darwin linking before installation; an existing complete toolchain is reused.'), 'spirv_cross': ('https://github.com/KhronosGroup/SPIRV-Cross', 'Downloads verified SPIRV-Cross sources and builds with portable LLVM. Installs the C++ compiler automatically if needed; no Visual Studio or CMake is required.'), 'sdk': ('https://developer.apple.com/download/all/?q=Xcode', 'Finds complete iPhoneOS SDKs version 26.5 or newer in Downloads, the project and the configured search folder. Simulator and macOS SDKs are rejected. A discovered SDK archive can be extracted and configured locally. Obtain the SDK from your own Xcode installation.'), 'metal': ('https://developer.apple.com/download/all/?q=metal%20developer%20tools%20for%20windows', 'Sign in on the Apple website to download and install Metal Developer Tools for Windows. Recheck detects standard installations automatically. For a custom installation, select metal.exe below. Apple login stays in your browser.')})
+
+DEPENDENCY_HELP['mac_metal'] = ('https://developer.apple.com/documentation/Xcode/downloading-and-installing-additional-xcode-components', 'With Xcode installed and selected, downloads and installs its Metal Toolchain through the official xcodebuild command. Finish Xcode first-launch setup before installing.')
+
 def profiles(system=None):
     system = system or platform.system()
     result = []
@@ -44,6 +48,9 @@ def environment(config):
     from .platform_tools import find_dotnet, probe
     importlib.invalidate_caches()
     system = platform.system()
+    from .apple_tools import scan_apple_tools, effective_config
+    discovery = scan_apple_tools(config) if system == 'Windows' else None
+    resolved = effective_config(config, discovery)
     root = Path(config['tools'])
     exe = '.exe' if system == 'Windows' else ''
     expected = {'extractor': root / 'nx_extract' / ('nx_extract' + exe),
@@ -51,10 +58,14 @@ def environment(config):
     if system == 'Windows':
         expected.update(clang=root / 'ios-cross/toolchain/windows/iphone/bin/clang.exe',
                         lld=root / 'ios-cross/toolchain/windows/iphone/bin/lld.exe',
-                        sdk=Path(config.get('sdk') or root / 'ios-cross/iPhoneOS26.5.sdk'),
-                        metal=Path(config.get('metal') or root / 'metal/metal.exe'),
+                        sdk=Path(resolved.get('sdk') or root / 'ios-cross/iPhoneOS26.5.sdk'),
+                        metal=Path(resolved.get('metal') or root / 'metal/metal.exe'),
                         spirv_cross=root / 'spirv-cross-build/spirv-cross.exe')
     checks = [dict(name=k, path=str(v), available=v.is_dir() if k == 'sdk' else v.is_file()) for k, v in expected.items()]
+    if system == 'Windows':
+        from .apple_tools import sdk_info
+        for check in checks:
+            if check['name'] == 'sdk': check['available'] = sdk_info(check['path']) is not None
     dotnet = find_dotnet(config)
     for check in checks:
         if check['name'] == 'dotnet':
@@ -65,7 +76,10 @@ def environment(config):
             checks.append(dict(name=name, path=found or '', available=bool(found)))
         for name, command in [('macos_sdk', ['--sdk', 'macosx', '--show-sdk-path']), ('iphoneos_sdk', ['--sdk', 'iphoneos', '--show-sdk-path']), ('mac_metal', ['--find', 'metal'])]:
             found = probe(['/usr/bin/xcrun', *command])
-            checks.append(dict(name=name, path=found, available=bool(found and Path(found).exists())))
+            available = bool(found and Path(found).exists())
+            if name == 'mac_metal' and available:
+                available = bool(probe(['/usr/bin/xcrun', 'metal', '--version']))
+            checks.append(dict(name=name, path=found, available=available))
     packages = str(root / 'python-packages')
     if packages not in sys.path: sys.path.append(packages)
     for name in ('lz4', 'capstone', 'fontTools', 'PIL'):
@@ -73,6 +87,6 @@ def environment(config):
     for check in checks:
         check['label'] = {'dotnet': '.NET 10 SDK', 'macos_sdk': 'macOS SDK', 'iphoneos_sdk': 'iPhoneOS SDK (iOS packaging)', 'mac_metal': 'Xcode Metal compiler'}.get(check['name'], check['name'])
         check['help_url'], check['help_text'] = DEPENDENCY_HELP[check['name']]
-        check['install_method'] = install_method(check['name'], config, system)
+        check['install_method'] = install_method(check['name'], config, system, discovery)
         check['auto_install'] = check['install_method'] != 'manual'
-    return dict(system=system, machine=platform.machine(), checks=checks, profiles=profiles(system))
+    return dict(system=system, machine=platform.machine(), checks=checks, profiles=profiles(system), apple_tools=discovery)

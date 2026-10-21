@@ -81,12 +81,14 @@ def create_app(root, token=None, config=None):
 
     @app.get('/api/environment')
     def env():
-        return dict(environment(config), config=config, data_directory=str(root))
+        from .apple_tools import effective_config
+        report = environment(config)
+        return dict(report, config=effective_config(config, report.get('apple_tools')), data_directory=str(root))
 
     @app.put('/api/config')
     async def configure(request: Request):
         value = await request.json()
-        if any(k not in ('tools', 'sdk', 'metal', 'python_index') for k in value):
+        if any(k not in ('tools', 'sdk', 'metal', 'python_index', 'sdk_search', 'sdk_archive') for k in value):
             raise ValueError('Unknown tool setting')
         with jobs.lock:
             if jobs.active or jobs.pending:

@@ -59,19 +59,48 @@ async function loadEnvironment() {
   const selected = $('game').value;
   $('game').innerHTML = '<option value="">Detect from input</option>' + env.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
   $('game').value = selected;
-  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}"><div class="check-heading"><strong>${c.available?'✓':'!'} ${esc(t(c.label || c.name))}</strong><a href="${esc(c.help_url)}" target="_blank" rel="noopener noreferrer">${esc(t(c.available?'Official instructions':'Get / install'))} ↗</a></div>${!c.available && c.auto_install?`<button data-install="${esc(c.name)}">${esc(t('Install'))}</button>`:''}${!c.available && !c.auto_install?`<span>${esc(t('Manual setup'))}</span>`:''}${c.install_method==='direct'?`<small>${esc(t('Official download / local build; no Homebrew required'))}</small>`:''}${c.install_method==='homebrew'?`<small>${esc(t('Installs through Homebrew'))}</small>`:''}${c.available && c.name !== 'dotnet'?'':`<p>${esc(t(c.help_text))}</p><small>${esc(c.path)}</small>`}</div>`).join('');
+  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}"><div class="check-heading"><strong>${c.available?'✓':'!'} ${esc(t(c.label || c.name))}</strong><a href="${esc(c.help_url)}" target="_blank" rel="noopener noreferrer">${esc(t(c.available?'Official instructions':'Get / install'))} ↗</a></div>${!c.available && c.auto_install?`<button data-install="${esc(c.name)}">${esc(t('Install'))}</button>`:''}${!c.available && !c.auto_install?`<span>${esc(t('Manual setup'))}</span>`:''}${c.install_method==='portable'?`<small>${esc(t('Verified portable tools; no administrator access required'))}</small>`:''}${c.install_method==='import'?`<small>${esc(t('Extracts your downloaded SDK archive locally'))}</small>`:''}${c.install_method==='direct'?`<small>${esc(t('Official download / local build; no Homebrew required'))}</small>`:''}${c.install_method==='xcode'?`<small>${esc(t('Installs through selected Xcode'))}</small>`:''}${c.install_method==='homebrew'?`<small>${esc(t('Installs through Homebrew'))}</small>`:''}${c.available && c.name !== 'dotnet'?'':`<p>${esc(t(c.help_text))}</p><small>${esc(c.path)}</small>`}</div>`).join('');
   $('install-all').disabled = !env.checks.some(c => !c.available && c.auto_install);
   $('python-index').value = env.config.python_index;
   $('tools-path').value = env.config.tools || ''; $('sdk-path').value = env.config.sdk || ''; $('metal-path').value = env.config.metal || '';
   const isMac = env.system === 'Darwin';
+  renderAppleDiscovery();
   $('sdk-path').parentElement.hidden = env.system !== 'Windows';
   $('metal-path').parentElement.hidden = env.system !== 'Windows';
   $('platform-note').textContent = t(isMac ? 'macOS checks: Xcode SDKs, Metal and native build tools. Windows cross-compilation tools are not required.' : env.system === 'Windows' ? 'Windows checks: LLVM/lld, iPhoneOS SDK and Windows Metal tools. macOS builds require a Mac.' : 'This host is not supported for application builds.');
   $('data-folder').textContent = t('Data folder: ') + env.data_directory;
   capability(); translateStatic();
 }
+
+function renderAppleDiscovery() {
+  const windows = env.system === 'Windows', found = env.apple_tools;
+  $('sdk-search-label').hidden = !windows;
+  $('sdk-discovery').hidden = !windows;
+  $('sdk-search').value = env.config.sdk_search || '';
+  if (!windows || !found) return;
+  const sdks = found.sdks || [], archives = found.archives || [];
+  const sdkReady = env.checks.some(c => c.name === 'sdk' && c.available);
+  const options = sdks.map(sdk => `<option value="${esc(sdk.path)}">iPhoneOS ${esc(sdk.version)} · ${esc(sdk.path)}</option>`).join('');
+  $('sdk-discovery').innerHTML = `<p class="hint">${esc(t('Searches Downloads, project tools and the optional SDK search folder. Requires a complete iPhoneOS SDK version 26.5 or newer.'))}</p>${options?`<label>${esc(t('Detected iPhoneOS SDKs'))}<select id="detected-sdk"><option value="">${esc(t('Choose an SDK'))}</option>${options}</select></label>`:''}${(!sdkReady ? archives : []).map(path=>`<p class="hint">${esc(path)} <button data-sdk-archive="${esc(path)}">${esc(t('Extract and configure SDK'))}</button></p>`).join('')}${!options&&!archives.length?`<p class="hint">${esc(t('No complete iPhoneOS SDK found. Finish your download, then click Recheck.'))}</p>`:''}`;
+  if ($('detected-sdk')) $('detected-sdk').value = env.config.sdk || '';
+}
+$('sdk-discovery').onchange = action(async e => {
+  if (e.target.id !== 'detected-sdk' || !e.target.value) return;
+  await api('config', {method:'PUT',body:JSON.stringify({sdk:e.target.value})});
+  settingsDirty = false; await loadEnvironment(); message('Settings saved.');
+});
+$('sdk-discovery').onclick = action(async e => {
+  const archive = e.target.dataset.sdkArchive;
+  if (!archive) return;
+  await api('config', {method:'PUT',body:JSON.stringify({sdk_archive:archive})});
+  await installDependencies(['sdk']);
+});
+let settingsDirty = false, lastAppleScan = 0;
 const installStates = new Map();
 async function refresh() {
+  if ($('settings').open && env?.system === 'Windows' && !settingsDirty && Date.now() - lastAppleScan > 15000) {
+    lastAppleScan = Date.now(); await loadEnvironment();
+  }
   const tasks = await api('tasks');
   const changed = tasks.filter(task => task.kind === 'install' && ['succeeded','failed','cancelled','interrupted'].includes(task.status) && installStates.get(task.id) !== task.status);
   for (const task of tasks.filter(task => task.kind === 'install')) installStates.set(task.id, task.status);
@@ -116,11 +145,12 @@ async function installDependencies(names) {
 }
 $('checks').onclick = action(async e => {if (e.target.dataset.install) await installDependencies([e.target.dataset.install]);});
 $('install-all').onclick = action(() => installDependencies());
-$('settings-button').onclick = () => $('settings').showModal();
+$('settings').addEventListener('input', () => { settingsDirty = true; });
+$('settings-button').onclick = action(async () => { settingsDirty = false; lastAppleScan = Date.now(); await loadEnvironment(); $('settings').showModal(); });
 $('recheck').onclick = action(async () => {await loadEnvironment(); message('Environment refreshed.');});
 $('close-settings').onclick = () => $('settings').close();
 $('close-logs').onclick = () => $('logs').close();
-$('save-settings').onclick = action(async () => {await api('config',{method:'PUT',body:JSON.stringify({tools:$('tools-path').value,sdk:$('sdk-path').value,metal:$('metal-path').value,python_index:$('python-index').value})});await loadEnvironment();message('Settings saved.');});
+$('save-settings').onclick = action(async () => {await api('config',{method:'PUT',body:JSON.stringify({tools:$('tools-path').value,sdk:$('sdk-path').value,metal:$('metal-path').value,python_index:$('python-index').value,sdk_search:$('sdk-search').value})});settingsDirty=false;await loadEnvironment();message('Settings saved.');});
 $('ui-language').value = uiLanguage;
 translateStatic();
 $('ui-language').onchange = action(async () => {uiLanguage = $('ui-language').value; localStorage.setItem('nx-ui-language', uiLanguage); translateStatic(); renderInputs(); await loadEnvironment(); await refresh();});

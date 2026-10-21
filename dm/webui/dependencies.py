@@ -24,12 +24,20 @@ DOTNET_METADATA = 'https://builds.dotnet.microsoft.com/dotnet/release-metadata/1
 def brew_path(config):
     return shutil.which('brew', path=tool_path(config))
 
-def install_method(name, config, system=None):
+def install_method(name, config, system=None, discovery=None):
     system = system or platform.system()
     if name in PYTHON_PACKAGES:
         return 'python'
     if name in ('dotnet', 'extractor') and system in ('Darwin', 'Windows') and platform.machine().lower() in ('arm64', 'aarch64', 'x86_64', 'amd64'):
         return 'local'
+    if system == 'Windows':
+        if name in ('clang', 'lld', 'spirv_cross') and platform.machine().lower() in ('amd64', 'x86_64', 'arm64', 'aarch64'):
+            return 'portable'
+        if name == 'sdk':
+            from .apple_tools import sdk_archive
+            return 'import' if sdk_archive(config, discovery) else 'manual'
+    if name == 'mac_metal' and system == 'Darwin' and probe(['/usr/bin/xcodebuild', '-version']).startswith('Xcode '):
+        return 'xcode'
     if name in BREW_PACKAGES and system == 'Darwin':
         return 'homebrew' if brew_path(config) else 'direct'
     return 'manual'
@@ -52,7 +60,7 @@ def download(url, destination, folder, expected_hash, algorithm='sha512', label=
         destination.unlink(missing_ok=True)
         raise ValueError(label + ' ' + algorithm + ' checksum mismatch')
 
-def unpack(archive, destination):
+def unpack(archive, destination, source_root=None):
     if archive.suffix == '.zip':
         with zipfile.ZipFile(archive) as source:
             for item in source.infolist():
@@ -62,7 +70,14 @@ def unpack(archive, destination):
             source.extractall(destination)
     else:
         with tarfile.open(archive) as source:
-            source.extractall(destination, filter='data')
+            members = None
+            if source_root:
+                # Only source files and licenses are needed for a CLI build.
+                # Regression shader paths can exceed Windows' legacy path limit.
+                members = [item for item in source if item.isfile() and
+                           Path(item.name).parts[0] == source_root and
+                           (len(Path(item.name).parts) == 2 or Path(item.name).parts[1] == 'LICENSES')]
+            source.extractall(destination, members=members, filter='data')
 
 def install_dotnet(folder, root, run):
     system = platform.system()
@@ -167,6 +182,15 @@ def install(folder, task, config, run):
                 importlib.invalidate_caches()
             elif name == 'dotnet':
                 install_dotnet(folder, root, run)
+            elif name in ('clang', 'lld', 'spirv_cross') and platform.system() == 'Windows':
+                from .windows_tools import install_llvm, install_spirv_cross
+                if name == 'spirv_cross': install_spirv_cross(folder, root, run)
+                else: install_llvm(folder, root, run)
+            elif name == 'mac_metal':
+                run(folder, ['/usr/bin/xcodebuild', '-downloadComponent', 'metalToolchain'])
+            elif name == 'sdk':
+                from .apple_tools import install_sdk
+                install_sdk(folder, config)
             elif name == 'extractor':
                 dotnet = find_dotnet(config)
                 if not dotnet: raise RuntimeError('A working .NET 10 SDK is required')
