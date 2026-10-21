@@ -34,7 +34,6 @@ def ensure_dependencies(root, repo, index_url=DEFAULT_INDEX):
     missing = missing_dependencies()
     if not missing:
         return
-    print('Installing missing Python dependencies: ' + ', '.join(missing), flush=True)
     runtime = Path(root) / 'venv'
     python = runtime / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python3')
     env = dict(os.environ)
@@ -45,9 +44,12 @@ def ensure_dependencies(root, repo, index_url=DEFAULT_INDEX):
             subprocess.run([sys.executable, '-m', 'venv', str(runtime)], check=True)
         probe = [str(python), str(Path(__file__).resolve()), '--check']
         if subprocess.run(probe, stdout=subprocess.DEVNULL, env=env).returncode:
+            print('Installing missing Python dependencies: ' + ', '.join(missing), flush=True)
             subprocess.run([str(python), '-m', 'pip', 'install', '--disable-pip-version-check', '--index-url', index_url,
                             '-r', str(Path(repo) / 'dm/webui/requirements.txt')], check=True, env=env)
             subprocess.run(probe, check=True, env=env)
+        else:
+            print('Reusing existing Python dependency environment: ' + str(runtime), flush=True)
     except (OSError, subprocess.CalledProcessError) as error:
         raise RuntimeError('Automatic dependency setup failed. Check your network and Python venv/pip installation, then restart. ' + str(error)) from error
     # Use the same interpreter for the server and all build workers.

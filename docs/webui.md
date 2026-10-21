@@ -4,19 +4,19 @@ The WebUI uploads NSP/XCI files and keys, inspects content metadata, converts st
 
 ## Start
 
-Use Python 3.11 or newer. Run `scripts/start_webui.command` on macOS, `scripts/start_webui.bat` on Windows, or:
+Windows installs its own Python on first launch; macOS requires Python 3.11 or newer. Run `scripts/start_webui.command` on macOS, `scripts/start_webui.bat` on Windows, or:
 
 ```sh
 python3 scripts/start_webui.py
 ```
 
-Startup does not ask for a data path. It defaults to `.webui-data/` inside the repository (ignored by Git), including uploads, keys, tasks, caches and a local Python environment. Existing compatible Python dependencies are reused without running pip. Missing or incompatible dependencies are automatically installed into `.webui-data/venv`; a completed environment is reused on later launches. The system Python environment is not modified. Python itself must already be installed; first-time dependency setup needs network access.
+Startup does not ask for a data path. It defaults to `.webui-data/` inside the repository (ignored by Git), including uploads, keys, tasks, caches and a local Python environment. Existing compatible Python dependencies are reused without running pip. Missing or incompatible dependencies are automatically installed into `.webui-data/venv`; a completed environment is reused on later launches. The system Python environment is not modified. On Windows, the BAT launcher downloads Python 3.13.16 into `.webui-data/runtime` on first launch and reuses it afterward. The official CPython NuGet archive includes pip, venv and its license; no global Python installation, PATH changes or administrator rights are required. First-time runtime and dependency setup needs network access. macOS still requires an existing Python 3.11 or newer.
 
 You may still override the location with `--data-dir` or `NX_DATA_DIR`, including a repository sibling under your home folder. `--tools` selects an existing prepared tools folder. Dependencies and caches follow the chosen data directory.
 
 Open the URL printed by the launcher. The token is exchanged for a local session cookie and removed from the address bar. The service rejects foreign origins and non-loopback hosts. It is a local, single-user tool; do not expose it through a proxy or a public interface. Only one process may use a given data folder.
 
-`start_webui.bat` and `start_webui.command` are launch shortcuts. Set `NX_TOOLS_DIR` to use an external prepared tools folder and its optional `runtime/python.exe` (Windows) or `runtime/bin/python3` (Mac). Otherwise they use system Python. In Spyder, edit the settings at the top of `start_webui.py` and press F5.
+`start_webui.bat` and `start_webui.command` are launch shortcuts. Set `NX_TOOLS_DIR` to use an external prepared tools folder. Windows always uses the project-local runtime; the Mac launcher uses the optional `runtime/bin/python3` in that tools folder or system Python. In Spyder, edit the settings at the top of `start_webui.py` and press F5.
 
 ## Tools and platforms
 
@@ -39,8 +39,8 @@ The header language selector switches between Simplified Chinese and English and
 
 ## Windows installation
 
-1. Install [Python 3.11 or newer](https://www.python.org/downloads/windows/) and enable its PATH option. Clone or download this branch, then double-click `scripts/start_webui.bat` or run `python scripts/start_webui.py` from the repository root.
-2. Startup installs missing Python dependencies into `.webui-data/venv` and opens the local WebUI. No data-folder prompt or global pip configuration is needed.
+1. Clone or download this branch, then double-click `scripts/start_webui.bat`. The launcher downloads a portable Python into the project on first launch, verifies its pinned SHA-256, and reuses a working runtime on subsequent launches. Windows AMD64 and ARM64 packages are selected by host architecture; AMD64 startup has been exercised end to end. No system `python` command is needed.
+2. Startup installs missing Python dependencies into `.webui-data/venv` and opens the local WebUI. No data-folder prompt or global pip configuration is needed. Startup output and failures are appended to `.webui-data/startup.log`; the BAT window stays open on failure. Retry the launcher after fixing network problems: verified archives and working environments are reused. Runtime files and the startup log remain in the repository even when `--data-dir` selects another task-data directory.
 3. Open **Environment & tools**, keep the default `.webui-data/tools` directory (or save a different directory), then select **Install all supported missing dependencies**. This downloads the official .NET 10 SDK for the host architecture, verifies its SHA-512 hash, and builds this repository's `nx_extract`. Python build packages can also be installed individually.
 4. Install the remaining native tools using the linked official instructions. Keep LLVM `bin` and `lib/clang` together under `tools/ios-cross/toolchain/windows/iphone`; this must include `clang.exe` and `lld.exe`. Put a Windows SPIRV-Cross build at `tools/spirv-cross-build/spirv-cross.exe`. Configure the `metal.exe` path from [Apple Metal Developer Tools](https://developer.apple.com/metal/tools/). Supply an iPhoneOS SDK from your own Xcode installation and save its absolute directory in the SDK field.
 5. Select **Recheck**, then upload/import the game packages and keys. Windows produces unsigned iOS packages for the supported offline NVN subset; it cannot produce macOS applications or capture runtime shaders.
@@ -54,6 +54,8 @@ The header language selector switches between Simplified Chinese and English and
 5. Select **Recheck**, then choose macOS and/or iOS output. Tool presence does not establish shader-chain compatibility; the existing build checks still enforce the repository's tool fingerprints. macOS installation and builds need validation on an actual Mac.
 
 ## Python mirror and installer behavior
+
+The Windows Python runtime downloads from the Huawei Cloud NuGet mirror first, with an explicitly logged fallback to official NuGet if the mirror fails or has not synchronized the pinned release. Both sources must match the same pinned SHA-256 in `scripts/python-windows.json`. A partial or mismatched download is never executed. An installation lock prevents simultaneous downloads; a broken existing runtime is preserved with a `.previous-...` suffix when replaced.
 
 Startup, WebUI Python installation and the offline bundle preparer default to the [Tsinghua PyPI mirror](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/) at `https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple`. In **Environment & tools**, choose **Official PyPI** and save to switch sources. The saved selection applies to subsequent installs and restarts. The preparer also accepts `--index-url`; `--wheelhouse` bypasses network indexes entirely. This does not change the machine's global pip settings. .NET, Homebrew and NuGet keep their own download sources.
 
