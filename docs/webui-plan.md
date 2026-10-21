@@ -1,0 +1,21 @@
+# WebUI implementation plan
+
+Integration base: `xbunax/nxnative` main at `233f18f421344fcd3b61559459ef8649d6c38a54`.
+
+- [x] Isolate integration from the original checkout's uncommitted native changes.
+- [x] Add a small FastAPI service and plain HTML/CSS/JavaScript UI.
+- [x] Use task configuration files, JSONL events and text logs, without SQLite.
+- [x] Support chunked uploads, local path imports, metadata inspection, serial jobs, cancellation and interrupted-job recovery.
+- [x] Convert standard XCI secure partitions into per-title NSP files with integrity validation.
+- [x] Connect macOS/iOS packagers and Windows offline NVN iOS cross-compilation.
+- [x] Migrate language, operation mode and MetalFX spatial launch settings.
+- [x] Keep tool/runtime preparation separate from proprietary SDKs, keys and game inputs.
+- [x] Complete Hades II NSP-to-IPA integration acceptance and record verification results.
+- [x] Finish browser verification, including Chinese/English switching.
+- [x] Prepare the tested integration for GitHub synchronization on `codex/lightweight-webui`.
+
+Acceptance: use Hades II base NSP `0100A00019DE0000`, version `0.0.126424`. Verify extraction/build IDs, unchanged shader evidence, shader-chain compilation, rewritten embedded module bytes, unsigned ARM64 iOS executable, archive integrity and included launch defaults. A successfully produced IPA is build acceptance; device playability and macOS execution remain separate hardware tests.
+
+- [x] Add a persistent Chinese/English interface switch, independent from game language.
+
+Build results: [Hades II verification summary](webui-hades2-validation.json). macOS packaging and iOS gameplay were not executed on Apple hardware.
