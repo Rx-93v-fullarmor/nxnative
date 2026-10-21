@@ -33,7 +33,7 @@ def main():
         if out == source or out.is_relative_to(source) or source.is_relative_to(out):
             parser.error('Source and destination tool folders must not overlap')
         # Explicit allowlist: no game files, keys, fonts, Apple SDKs or Metal tools.
-        for name in ('dotnet', 'nx_extract', 'spirv-cross-build', 'ios-cross/toolchain/windows/iphone/bin'):
+        for name in ('dotnet', 'nx_extract', 'spirv-cross-build', 'ios-cross/toolchain/windows/iphone/bin', 'ios-cross/toolchain/windows/iphone/lib/clang'):
             original = source / name
             if original.exists(): shutil.copytree(original, out / name, dirs_exist_ok=True)
     if args.python_runtime:

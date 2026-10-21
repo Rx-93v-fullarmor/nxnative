@@ -6,7 +6,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from dm.webui.jobs import Jobs, emit, read_events, summary, write_json
 from dm.webui.server import create_app, data_directory
-from dm.webui.capabilities import profiles, REPO
+from dm.webui.capabilities import profiles, environment, REPO
 
 
 class Service(unittest.TestCase):
@@ -104,6 +104,15 @@ class Service(unittest.TestCase):
         self.assertTrue(source.exists())
         self.client.post(f'/api/tasks/{identities[1]}/cancel')
         self.assertFalse(source.exists())
+
+    def test_missing_dependencies_have_official_help(self):
+        with patch('dm.webui.capabilities.platform.system', return_value='Windows'):
+            checks=environment({'tools':str(self.root/'missing-tools')})['checks']
+        for check in checks:
+            self.assertTrue(check['help_url'].startswith('https://'))
+            self.assertTrue(check['help_text'])
+        self.assertFalse(next(c for c in checks if c['name']=='metal')['available'])
+        self.assertEqual(next(c for c in checks if c['name']=='metal')['help_url'],'https://developer.apple.com/metal/tools/')
 
     def test_windows_capabilities(self):
         for profile in profiles('Windows'):

@@ -103,6 +103,27 @@ const zhMessages = {
   "Task queued: ": "任务已加入队列：",
   "Remove ": "移除 "
 };
+Object.assign(zhMessages, {
+  "Official instructions": "官方说明",
+  "Get / install": "获取 / 安装",
+  "Recheck": "重新检测",
+  "Environment refreshed.": "环境检测已更新。",
+  "Build nx_extract from this repository with scripts/prepare_webui_tools.py; it is not a separate vendor download.": "通过本项目的 scripts/prepare_webui_tools.py 构建 nx_extract，无需单独下载第三方程序。",
+  "Get the .NET 10 SDK for your host and place it in the tools/dotnet folder.": "获取适合当前系统的 .NET 10 SDK，并放入工具目录的 dotnet 子目录。",
+  "Get host-compatible LLVM with ARM64 and Mach-O support. Keep bin and lib/clang together under tools/ios-cross/toolchain/windows/iphone.": "获取支持 ARM64 和 Mach-O 的本机 LLVM 工具链，将 bin 与 lib/clang 一并保存在 tools/ios-cross/toolchain/windows/iphone 下。",
+  "Get lld from the LLVM toolchain. The Windows build uses its Darwin linker mode.": "从 LLVM 工具链获取 lld。Windows 构建使用其 Darwin 链接模式。",
+  "Obtain the iPhoneOS SDK from your Xcode installation, then set its directory below. This project does not distribute Apple SDKs.": "从自行安装的 Xcode 获取 iPhoneOS SDK，并在下方指定目录。本项目不分发 Apple SDK。",
+  "Get Apple Metal Developer Tools for Windows, then set the metal.exe path below.": "获取 Apple 官方的 Windows Metal Developer Tools，并在下方填写 metal.exe 路径。",
+  "Build SPIRV-Cross with its documented CMake instructions and place spirv-cross.exe in tools/spirv-cross-build.": "按照官方 CMake 说明构建 SPIRV-Cross，将 spirv-cross.exe 放入工具目录的 spirv-cross-build 子目录。",
+  "Install SPIRV-Cross and add it to PATH. Follow the repository shader-tool lock requirements.": "安装 SPIRV-Cross 并加入 PATH，同时遵循项目着色器工具版本锁定要求。",
+  "Install XcodeGen following its official instructions and add xcodegen to PATH.": "按照官方说明安装 XcodeGen，并将 xcodegen 加入 PATH。",
+  "Install Zstandard and add zstd to PATH.": "安装 Zstandard，并将 zstd 加入 PATH。",
+  "Install Xcode and its command-line tools on the Mac; check the selected developer directory.": "在 Mac 上安装 Xcode 和命令行工具，并检查当前选择的开发工具目录。",
+  "Install lz4 into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.": "在 WebUI 使用的 Python 环境中安装 lz4，或对当前工具目录重新运行 scripts/prepare_webui_tools.py。",
+  "Install capstone into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.": "在 WebUI 使用的 Python 环境中安装 capstone，或对当前工具目录重新运行 scripts/prepare_webui_tools.py。",
+  "Install fonttools into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.": "在 WebUI 使用的 Python 环境中安装 fonttools，或对当前工具目录重新运行 scripts/prepare_webui_tools.py。",
+  "Install Pillow into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.": "在 WebUI 使用的 Python 环境中安装 Pillow，或对当前工具目录重新运行 scripts/prepare_webui_tools.py。"
+});
 let uiLanguage = localStorage.getItem('nx-ui-language') || (navigator.language.startsWith('zh') ? 'zh-CN' : 'en');
 if (!['zh-CN', 'en'].includes(uiLanguage)) uiLanguage = 'en';
 function t(text) {

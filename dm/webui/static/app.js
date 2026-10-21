@@ -59,7 +59,7 @@ async function loadEnvironment() {
   const selected = $('game').value;
   $('game').innerHTML = '<option value="">Detect from input</option>' + env.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
   $('game').value = selected;
-  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}">${c.available?'✓':'!'} ${esc(c.name)}</div>`).join('');
+  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}"><div class="check-heading"><strong>${c.available?'✓':'!'} ${esc(c.name)}</strong><a href="${esc(c.help_url)}" target="_blank" rel="noopener noreferrer">${esc(t(c.available?'Official instructions':'Get / install'))} ↗</a></div>${c.available?'':`<p>${esc(t(c.help_text))}</p><small>${esc(c.path)}</small>`}</div>`).join('');
   $('tools-path').value = env.config.tools || ''; $('sdk-path').value = env.config.sdk || ''; $('metal-path').value = env.config.metal || '';
   $('data-folder').textContent = t('Data folder: ') + env.data_directory;
   capability(); translateStatic();
@@ -101,6 +101,7 @@ $('tasks').onclick = action(async e => {
   if(d.cancel||d.retry||d.delete) await refresh();
 });
 $('settings-button').onclick = () => $('settings').showModal();
+$('recheck').onclick = action(async () => {await loadEnvironment(); message('Environment refreshed.');});
 $('close-settings').onclick = () => $('settings').close();
 $('close-logs').onclick = () => $('logs').close();
 $('save-settings').onclick = action(async () => {await api('config',{method:'PUT',body:JSON.stringify({tools:$('tools-path').value,sdk:$('sdk-path').value,metal:$('metal-path').value})});await loadEnvironment();message('Tool paths saved.');});

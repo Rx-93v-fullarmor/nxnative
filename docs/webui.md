@@ -23,7 +23,7 @@ Open the URL printed by the launcher. The token is exchanged for a local session
 
 ## Tools and platforms
 
-Open **Environment & tools** to configure the tools directory and, on Windows, the Apple SDK and Metal compiler paths. Dependency checks report missing files and Python packages. Tool preparation is explicit:
+Open **Environment & tools** to configure the tools directory and, on Windows, the Apple SDK and Metal compiler paths. Dependency checks report missing files and Python packages. Each check links to the official download or installation instructions; missing entries also show the expected path and a localized setup hint. Recheck after installing. Downloads and SDK installation are manual. Tool preparation is explicit:
 
 ```sh
 python scripts/prepare_webui_tools.py --out /path/to/external/tools --source-tools /path/to/existing/tools
@@ -78,4 +78,4 @@ python -m dm.webui.tests.integration_nsp --nsp /path/to/game.nsp --keys /path/to
 
 The integration runner exercises the real HTTP task API, metadata inspection, extraction manifest, and optional full build. Results stay on the game drive. IPAs are unsigned; this workflow neither signs nor installs them on a device. macOS packages are ad-hoc signed for local use and need separate Mac validation.
 
-Validated on Windows: Hades II base version 0.0.126424 produced an unsigned IPA with 88 shader keys and 5,418 archive entries. See [the verification summary](webui-hades2-validation.json). The WebUI regression suite contains 22 tests. Browser checks cover inspection/download links and Chinese/English switching, persistence, and independent game language.
+Validated on Windows: Hades II base version 0.0.126424 produced an unsigned IPA with 88 shader keys and 5,418 archive entries. See [the verification summary](webui-hades2-validation.json). The WebUI regression suite contains 23 tests. Browser checks cover inspection/download links and Chinese/English switching, persistence, and independent game language.
