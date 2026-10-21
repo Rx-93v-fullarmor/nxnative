@@ -59,10 +59,14 @@ async function loadEnvironment() {
   const selected = $('game').value;
   $('game').innerHTML = '<option value="">Detect from input</option>' + env.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
   $('game').value = selected;
-  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}"><div class="check-heading"><strong>${c.available?'✓':'!'} ${esc(c.name)}</strong><a href="${esc(c.help_url)}" target="_blank" rel="noopener noreferrer">${esc(t(c.available?'Official instructions':'Get / install'))} ↗</a></div>${!c.available && c.auto_install?`<button data-install="${esc(c.name)}">${esc(t('Install'))}</button>`:''}${!c.available && !c.auto_install?`<span>${esc(t('Manual setup'))}</span>`:''}${c.install_method==='homebrew'?`<small>${esc(t('Installs through Homebrew'))}</small>`:''}${c.available?'':`<p>${esc(t(c.help_text))}</p><small>${esc(c.path)}</small>`}</div>`).join('');
+  $('checks').innerHTML = env.checks.map(c => `<div class="check ${c.available?'':'missing'}" title="${esc(c.path)}"><div class="check-heading"><strong>${c.available?'✓':'!'} ${esc(t(c.label || c.name))}</strong><a href="${esc(c.help_url)}" target="_blank" rel="noopener noreferrer">${esc(t(c.available?'Official instructions':'Get / install'))} ↗</a></div>${!c.available && c.auto_install?`<button data-install="${esc(c.name)}">${esc(t('Install'))}</button>`:''}${!c.available && !c.auto_install?`<span>${esc(t('Manual setup'))}</span>`:''}${c.install_method==='direct'?`<small>${esc(t('Official download / local build; no Homebrew required'))}</small>`:''}${c.install_method==='homebrew'?`<small>${esc(t('Installs through Homebrew'))}</small>`:''}${c.available && c.name !== 'dotnet'?'':`<p>${esc(t(c.help_text))}</p><small>${esc(c.path)}</small>`}</div>`).join('');
   $('install-all').disabled = !env.checks.some(c => !c.available && c.auto_install);
   $('python-index').value = env.config.python_index;
   $('tools-path').value = env.config.tools || ''; $('sdk-path').value = env.config.sdk || ''; $('metal-path').value = env.config.metal || '';
+  const isMac = env.system === 'Darwin';
+  $('sdk-path').parentElement.hidden = env.system !== 'Windows';
+  $('metal-path').parentElement.hidden = env.system !== 'Windows';
+  $('platform-note').textContent = t(isMac ? 'macOS checks: Xcode SDKs, Metal and native build tools. Windows cross-compilation tools are not required.' : env.system === 'Windows' ? 'Windows checks: LLVM/lld, iPhoneOS SDK and Windows Metal tools. macOS builds require a Mac.' : 'This host is not supported for application builds.');
   $('data-folder').textContent = t('Data folder: ') + env.data_directory;
   capability(); translateStatic();
 }

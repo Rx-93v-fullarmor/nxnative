@@ -15,13 +15,11 @@ import zipfile
 
 from scripts.webui_bootstrap import DEFAULT_INDEX, PYTHON_INDEXES
 from .jobs import emit
+from .platform_tools import tool_path, find_dotnet, dotnet_environment, probe
 
 PYTHON_PACKAGES = {'lz4': 'lz4', 'capstone': 'capstone', 'fontTools': 'fonttools', 'PIL': 'Pillow'}
 BREW_PACKAGES = {'xcodegen', 'zstd', 'spirv-cross'}
 DOTNET_METADATA = 'https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json'
-
-def tool_path(config):
-    return os.pathsep.join([str(Path(config['tools']) / 'bin'), '/opt/homebrew/bin', '/usr/local/bin', os.environ.get('PATH', '')])
 
 def brew_path(config):
     return shutil.which('brew', path=tool_path(config))
@@ -32,15 +30,15 @@ def install_method(name, config, system=None):
         return 'python'
     if name in ('dotnet', 'extractor') and system in ('Darwin', 'Windows') and platform.machine().lower() in ('arm64', 'aarch64', 'x86_64', 'amd64'):
         return 'local'
-    if name in BREW_PACKAGES and system == 'Darwin' and brew_path(config):
-        return 'homebrew'
+    if name in BREW_PACKAGES and system == 'Darwin':
+        return 'homebrew' if brew_path(config) else 'direct'
     return 'manual'
 
-def download(url, destination, folder, expected_hash):
+def download(url, destination, folder, expected_hash, algorithm='sha512', label='.NET'):
     parsed = urllib.parse.urlparse(url)
-    if parsed.scheme != 'https' or parsed.hostname not in ('builds.dotnet.microsoft.com', 'download.visualstudio.microsoft.com', 'ci.dot.net'):
-        raise ValueError('Unexpected .NET download origin')
-    digest = hashlib.sha512()
+    if parsed.scheme != 'https' or parsed.hostname not in ('builds.dotnet.microsoft.com', 'download.visualstudio.microsoft.com', 'ci.dot.net', 'github.com', 'codeload.github.com'):
+        raise ValueError('Unexpected dependency download origin')
+    digest = hashlib.new(algorithm)
     with urllib.request.urlopen(url, timeout=60) as response, destination.open('wb') as output:
         total = int(response.headers.get('Content-Length', 0))
         done, last = 0, -1
@@ -49,10 +47,10 @@ def download(url, destination, folder, expected_hash):
             if done // (8 * 1024**2) != last:
                 last = done // (8 * 1024**2)
                 print(f'Downloaded {done // 1024**2} / {total // 1024**2} MiB', flush=True)
-                emit(folder, 'stage', name=f'Downloading .NET: {done // 1024**2} / {total // 1024**2} MiB')
+                emit(folder, 'stage', name=f'Downloading {label}: {done // 1024**2} / {total // 1024**2} MiB')
     if digest.hexdigest().lower() != expected_hash.lower():
         destination.unlink(missing_ok=True)
-        raise ValueError('.NET SHA-512 checksum mismatch')
+        raise ValueError(label + ' ' + algorithm + ' checksum mismatch')
 
 def unpack(archive, destination):
     if archive.suffix == '.zip':
@@ -91,6 +89,54 @@ def install_dotnet(folder, root, run):
         shutil.rmtree(stage, ignore_errors=True)
         archive.unlink(missing_ok=True)
 
+MAC_DOWNLOADS = {
+    'xcodegen': ('https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip',
+                '4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806', 'xcodegen', 'bin/xcodegen'),
+    'zstd': ('https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz',
+             'eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3', 'zstd-1.5.7', 'programs/zstd'),
+    'spirv-cross': ('https://codeload.github.com/KhronosGroup/SPIRV-Cross/tar.gz/f11ba9f0b21ba8fc15153d50a2a1ae31ab1cf8f7',
+                    '92b0458889ed77eac9892b3be5a41e3cf716849fd90f39632e159e555abf3d03',
+                    'SPIRV-Cross-f11ba9f0b21ba8fc15153d50a2a1ae31ab1cf8f7', 'spirv-cross'),
+}
+
+def install_mac_tool(folder, root, name, run):
+    if platform.system() != 'Darwin' or name not in MAC_DOWNLOADS:
+        raise ValueError('This fallback installer is for macOS only')
+    url, digest, source_name, binary_name = MAC_DOWNLOADS[name]
+    # Source compilation uses Apple's selected toolchain, never a shell bootstrap.
+    if name != 'xcodegen':
+        compiler = probe(['/usr/bin/xcrun', '--find', 'clang++' if name == 'spirv-cross' else 'clang'])
+        if not compiler or not Path('/usr/bin/make').is_file():
+            raise RuntimeError('Install and configure Xcode before building ' + name)
+    work = folder / ('mac-' + name); work.mkdir(exist_ok=True)
+    archive = work / ('source.zip' if name == 'xcodegen' else 'source.tar.gz')
+    emit(folder, 'stage', name='Downloading ' + name)
+    download(url, archive, folder, digest, algorithm='sha256', label=name)
+    unpack(archive, work)
+    source = work / source_name
+    if name != 'xcodegen':
+        emit(folder, 'stage', name='Building ' + name + ' with Xcode')
+        command = ['/usr/bin/make', '-C', str(source / 'programs' if name == 'zstd' else source), '-j2']
+        command += ['zstd', 'CC=' + compiler] if name == 'zstd' else ['spirv-cross', 'CXX=' + compiler]
+        run(folder, command)
+    binary = source / binary_name
+    if not binary.is_file(): raise RuntimeError('Missing installed binary: ' + name)
+    if name == 'xcodegen':
+        shutil.copytree(source / 'share', root / 'share', dirs_exist_ok=True)
+    licenses = root / 'licenses' / name; licenses.mkdir(parents=True, exist_ok=True)
+    for pattern in ('LICENSE*', 'COPYING*'):
+        for license in source.glob(pattern):
+            if license.is_file(): shutil.copy2(license, licenses / license.name)
+    destination = root / 'bin' / name; destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name('.' + name + '-' + folder.name)
+    try:
+        shutil.copy2(binary, temporary); temporary.chmod(0o755)
+        run(folder, [temporary, '--revision' if name == 'spirv-cross' else '--version'])
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    archive.unlink(missing_ok=True)
+
 def install(folder, task, config, run):
     from .capabilities import REPO, environment
     root = Path(config['tools']); root.mkdir(parents=True, exist_ok=True)
@@ -122,12 +168,21 @@ def install(folder, task, config, run):
             elif name == 'dotnet':
                 install_dotnet(folder, root, run)
             elif name == 'extractor':
-                dotnet = root / 'dotnet' / ('dotnet.exe' if os.name == 'nt' else 'dotnet')
+                dotnet = find_dotnet(config)
+                if not dotnet: raise RuntimeError('A working .NET 10 SDK is required')
                 run(folder, [dotnet, 'build', REPO / 'dm/tools/nx_extract', '-c', 'Release', '-o', root / 'nx_extract',
-                             '-p:BaseIntermediateOutputPath=' + str(root / 'obj') + os.sep])
+                             '-p:BaseIntermediateOutputPath=' + str(root / 'obj') + os.sep], dotnet_environment(config, os.environ))
             else:
-                env = dict(os.environ, HOMEBREW_NO_AUTO_UPDATE='1', HOMEBREW_NO_INSTALL_CLEANUP='1', HOMEBREW_CACHE=str(root / 'brew-cache'))
-                run(folder, [brew_path(config), 'install', name], env)
+                brew = brew_path(config)
+                if brew:
+                    env = dict(os.environ, HOMEBREW_NO_AUTO_UPDATE='1', HOMEBREW_NO_INSTALL_CLEANUP='1', HOMEBREW_CACHE=str(root / 'brew-cache'))
+                    try:
+                        run(folder, [brew, 'install', name], env)
+                    except RuntimeError:
+                        print('Homebrew failed; trying the official local installer.', flush=True)
+                        install_mac_tool(folder, root, name, run)
+                else:
+                    install_mac_tool(folder, root, name, run)
             if not next(c for c in environment(config)['checks'] if c['name'] == name)['available']:
                 raise RuntimeError('Dependency is still unavailable after installation: ' + name)
             print('Installed: ' + name, flush=True)

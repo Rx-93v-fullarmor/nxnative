@@ -32,3 +32,9 @@ Build results: [Hades II verification summary](webui-hades2-validation.json). ma
 - Default Python to the Tsinghua mirror; allow selecting official PyPI without changing global pip settings.
 - Install Python packages, local .NET 10 SDK and nx_extract automatically; on Mac use existing Homebrew for xcodegen, zstd and spirv-cross.
 - Provide separate Windows/macOS instructions in the bilingual UI and documentation; retain manual Apple-tool and Windows native-tool setup.
+
+## Host-specific tools and Mac fallback
+
+- Show Mac-only Xcode/SDK/Metal checks on macOS and Windows cross-toolchain checks on Windows.
+- Probe and reuse existing .NET 10 SDK/runtime installations for detection and workers.
+- Fall back from absent/failed Homebrew to pinned, SHA-256-verified official Mac downloads and Xcode source builds in the local tools directory.

@@ -20,7 +20,7 @@ class Installation(unittest.TestCase):
             self.assertEqual(deps.install_method('sdk', {}, 'Darwin'), 'manual')
             self.assertEqual(deps.install_method('PIL', {}, 'Windows'), 'python')
         with patch.object(deps, 'brew_path', return_value=None):
-            self.assertEqual(deps.install_method('xcodegen', {}, 'Darwin'), 'manual')
+            self.assertEqual(deps.install_method('xcodegen', {}, 'Darwin'), 'direct')
 
     def test_download_checksum_failure_removes_archive(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -83,7 +83,7 @@ class Installation(unittest.TestCase):
             def run(*args):
                 self.assertIn('dotnet', installed)
                 installed.add('extractor')
-            with patch('dm.webui.capabilities.environment', side_effect=environment), patch.object(deps, 'install_dotnet', side_effect=dotnet), patch.object(deps, 'install_method', return_value='local'):
+            with patch('dm.webui.capabilities.environment', side_effect=environment), patch.object(deps, 'install_dotnet', side_effect=dotnet), patch.object(deps, 'install_method', return_value='local'), patch.object(deps, 'find_dotnet', return_value='dotnet'), patch.object(deps, 'dotnet_environment', side_effect=lambda c, e: e):
                 deps.install(root, {'dependencies':['extractor']}, {'tools':str(root/'tools')}, run)
             self.assertEqual(installed, {'dotnet','extractor'})
 

@@ -175,7 +175,8 @@ class Jobs:
                 env['PATH'] = os.pathsep.join([str(toolroot / 'dotnet'), str(toolroot / 'bin'), '/opt/homebrew/bin', '/usr/local/bin', env.get('PATH', '')])
                 env['PYTHONPATH'] = os.pathsep.join([str(toolroot / 'python-packages'), str(self.repo)])
                 env['DOTNET_CLI_HOME'] = str(toolroot / '.dotnet')
-                env['DOTNET_ROOT'] = str(toolroot / 'dotnet')
+                from .platform_tools import dotnet_environment
+                env = dotnet_environment(dict(self.config, tools=str(toolroot)), env)
                 env['NUGET_PACKAGES'] = str(toolroot / 'nuget')
                 env.update(DOTNET_CLI_TELEMETRY_OPTOUT='1', DOTNET_GENERATE_ASPNET_CERTIFICATE='false', DOTNET_NOLOGO='true')
                 temporary = folder / 'tmp'; temporary.mkdir(exist_ok=True)

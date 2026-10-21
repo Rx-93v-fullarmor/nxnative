@@ -14,6 +14,9 @@ import game
 DEPENDENCY_HELP = {'extractor': ('https://github.com/xbunax/nxnative/blob/codex/lightweight-webui/docs/webui.md', 'Build nx_extract from this repository with scripts/prepare_webui_tools.py; it is not a separate vendor download.'), 'dotnet': ('https://dotnet.microsoft.com/en-us/download/dotnet/10.0', 'Get the .NET 10 SDK for your host and place it in the tools/dotnet folder.'), 'clang': ('https://github.com/llvm/llvm-project/releases', 'Get host-compatible LLVM with ARM64 and Mach-O support. Keep bin and lib/clang together under tools/ios-cross/toolchain/windows/iphone.'), 'lld': ('https://github.com/llvm/llvm-project/releases', 'Get lld from the LLVM toolchain. The Windows build uses its Darwin linker mode.'), 'sdk': ('https://developer.apple.com/xcode/resources/', 'Obtain the iPhoneOS SDK from your Xcode installation, then set its directory below. This project does not distribute Apple SDKs.'), 'metal': ('https://developer.apple.com/metal/tools/', 'Get Apple Metal Developer Tools for Windows, then set the metal.exe path below.'), 'spirv_cross': ('https://github.com/KhronosGroup/SPIRV-Cross', 'Build SPIRV-Cross with its documented CMake instructions and place spirv-cross.exe in tools/spirv-cross-build.'), 'spirv-cross': ('https://github.com/KhronosGroup/SPIRV-Cross', 'Install SPIRV-Cross and add it to PATH. Follow the repository shader-tool lock requirements.'), 'xcodegen': ('https://github.com/yonaskolb/XcodeGen', 'Install XcodeGen following its official instructions and add xcodegen to PATH.'), 'zstd': ('https://github.com/facebook/zstd', 'Install Zstandard and add zstd to PATH.'), 'xcodebuild': ('https://developer.apple.com/xcode/resources/', 'Install Xcode and its command-line tools on the Mac; check the selected developer directory.'), 'xcrun': ('https://developer.apple.com/xcode/resources/', 'Install Xcode and its command-line tools on the Mac; check the selected developer directory.'), 'make': ('https://developer.apple.com/xcode/resources/', 'Install Xcode and its command-line tools on the Mac; check the selected developer directory.'), 'codesign': ('https://developer.apple.com/xcode/resources/', 'Install Xcode and its command-line tools on the Mac; check the selected developer directory.'), 'ditto': ('https://developer.apple.com/xcode/resources/', 'Install Xcode and its command-line tools on the Mac; check the selected developer directory.'), 'lz4': ('https://pypi.org/project/lz4/', 'Install lz4 into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.'), 'capstone': ('https://pypi.org/project/capstone/', 'Install capstone into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.'), 'fontTools': ('https://pypi.org/project/fonttools/', 'Install fonttools into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.'), 'PIL': ('https://pypi.org/project/Pillow/', 'Install Pillow into the WebUI Python environment, or rerun scripts/prepare_webui_tools.py for the configured tools folder.')}
 
 
+DEPENDENCY_HELP.update({name: ('https://developer.apple.com/xcode/resources/', 'Provided by the selected Xcode installation. Finish Xcode setup and select its command-line tools.') for name in ('macos_sdk', 'iphoneos_sdk', 'mac_metal')})
+DEPENDENCY_HELP['dotnet'] = ('https://dotnet.microsoft.com/en-us/download/dotnet/10.0', '.NET 10 SDK is a build-time dependency for the C# extractor and shader tools on both Mac and Windows. Existing compatible SDKs are reused; built apps do not require .NET.')
+
 def profiles(system=None):
     system = system or platform.system()
     result = []
@@ -38,6 +41,7 @@ def profiles(system=None):
 
 def environment(config):
     from .dependencies import install_method, tool_path
+    from .platform_tools import find_dotnet, probe
     importlib.invalidate_caches()
     system = platform.system()
     root = Path(config['tools'])
@@ -51,15 +55,23 @@ def environment(config):
                         metal=Path(config.get('metal') or root / 'metal/metal.exe'),
                         spirv_cross=root / 'spirv-cross-build/spirv-cross.exe')
     checks = [dict(name=k, path=str(v), available=v.is_dir() if k == 'sdk' else v.is_file()) for k, v in expected.items()]
+    dotnet = find_dotnet(config)
+    for check in checks:
+        if check['name'] == 'dotnet':
+            check.update(path=dotnet or check['path'], available=bool(dotnet))
     if system == 'Darwin':
         for name in ('xcodebuild', 'xcrun', 'xcodegen', 'make', 'zstd', 'spirv-cross', 'codesign', 'ditto'):
             found = shutil.which(name, path=tool_path(config))
             checks.append(dict(name=name, path=found or '', available=bool(found)))
+        for name, command in [('macos_sdk', ['--sdk', 'macosx', '--show-sdk-path']), ('iphoneos_sdk', ['--sdk', 'iphoneos', '--show-sdk-path']), ('mac_metal', ['--find', 'metal'])]:
+            found = probe(['/usr/bin/xcrun', *command])
+            checks.append(dict(name=name, path=found, available=bool(found and Path(found).exists())))
     packages = str(root / 'python-packages')
     if packages not in sys.path: sys.path.append(packages)
     for name in ('lz4', 'capstone', 'fontTools', 'PIL'):
         checks.append(dict(name=name, path='Python package', available=importlib.util.find_spec(name) is not None))
     for check in checks:
+        check['label'] = {'dotnet': '.NET 10 SDK', 'macos_sdk': 'macOS SDK', 'iphoneos_sdk': 'iPhoneOS SDK (iOS packaging)', 'mac_metal': 'Xcode Metal compiler'}.get(check['name'], check['name'])
         check['help_url'], check['help_text'] = DEPENDENCY_HELP[check['name']]
         check['install_method'] = install_method(check['name'], config, system)
         check['auto_install'] = check['install_method'] != 'manual'
