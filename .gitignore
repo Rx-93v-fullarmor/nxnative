@@ -4,6 +4,3 @@
 .iosdd_*/
 .DS_Store
 __pycache__/
-
-# Local WebUI uploads, keys, tasks, tool downloads and Python environment
-.webui-data/

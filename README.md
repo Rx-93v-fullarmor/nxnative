@@ -116,7 +116,3 @@ How it works, the script's options, running games on the Mac, adding a game, and
 ## License
 
 MIT (see [LICENSE](LICENSE)). Third-party code keeps its own license; see [dm/third_party](dm/third_party/README.md).
-
-## Local WebUI
-
-Use the [local build studio](docs/webui.md) to upload or import NSP/XCI files and keys, convert XCI to NSP, and build Apple applications with selectable launch defaults. Tasks use local JSONL/text logs and no database.
