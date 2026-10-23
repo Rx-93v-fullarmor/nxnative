@@ -19,6 +19,16 @@ The fork's `scripts/build_ipa_from_nsp.py` imported `json` only inside
 at module level. Patch 0009 adds a top-level `import json`. It also points the
 macOS target at the moved `webui/build/macos/pack_app.py`.
 
+## Separate RomFS hooks (0008/0009)
+
+Patches 0008 (`dm/ios/tools/build_ipa.sh`) and 0009
+(`scripts/build_ipa_from_nsp.py`) also carry the optional `--separate-romfs`
+hooks. Patch 0008 skips the `MAPS` RomFS entry when
+`NX_SEPARATE_ROMFS=1`; patch 0009 adds the flag, sets that environment value,
+and creates the separate archive with `webui/build/romfs_archive.py`. The
+archive layout is a top-level `romfs/`, created by the upstream `pack_ipa.py`.
+This remains one patch per target; the queue is still nine patches.
+
 ## Do not regenerate
 
 `.gitignore`, `README.md` and `dm/ios/project.yml` are not part of the patch

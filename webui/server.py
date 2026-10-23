@@ -211,13 +211,21 @@ def create_app(root, token=None, config=None):
         targets = value.get('targets', ['ios'])
         if not isinstance(targets, list) or not targets or any(t not in ('ios', 'mac') for t in targets):
             raise ValueError('Invalid platform selection')
+        separate_romfs = value.get('separate_romfs', False)
+        if type(separate_romfs) is not bool:
+            raise ValueError('Invalid RomFS packaging selection')
+        if separate_romfs and kind != 'build':
+            raise ValueError('Separate RomFS is only available for application builds')
+        if separate_romfs and 'ios' not in targets:
+            raise ValueError('Separate RomFS requires an iOS target')
         settings = value.get('settings', {})
         if not isinstance(settings, dict) or any(k not in OPTIONS or v not in OPTIONS[k] for k, v in settings.items()):
             raise ValueError('Invalid launch settings')
         settings = {k: settings.get(k, choices[0]) for k, choices in OPTIONS.items()}
         settings.update(DM_METALFX_INTERPOLATION='0', DM_DYNAMIC_RESOLUTION='1')
         return {'id': jobs.create(dict(kind=kind, files=files, keys=keys['path'], game=value.get('game', ''),
-            targets=list(dict.fromkeys(targets)), settings=settings, retain_keys=bool(value.get('retain_keys', False))))}
+            targets=list(dict.fromkeys(targets)), settings=settings, separate_romfs=separate_romfs,
+            retain_keys=bool(value.get('retain_keys', False))))}
 
     @app.get('/api/tasks/{identity}/events')
     def events(identity: str, offset: int = 0):

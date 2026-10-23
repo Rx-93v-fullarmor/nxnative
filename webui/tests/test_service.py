@@ -65,6 +65,46 @@ class Service(unittest.TestCase):
         response=self.client.post('/api/tasks',json=dict(files=[game],keys=keys,settings={'DM_LANG':'invalid'}))
         self.assertEqual(response.status_code,400)
 
+    def test_separate_romfs_validation_and_persistence(self):
+        jobs=self.app.state.jobs;jobs.stop.set();jobs.thread.join()
+        game=self.upload();(self.root/'prod.keys').write_bytes(b'fixture')
+        keys=self.client.post('/api/import',json={'path':str(self.root/'prod.keys')}).json()['id']
+        base=dict(files=[game],keys=keys,kind='build',targets=['ios'],retain_keys=True)
+        for value in ('true', 1, None):
+            response=self.client.post('/api/tasks',json=dict(base,separate_romfs=value))
+            self.assertEqual(response.status_code,400,value)
+        for payload in (dict(base,kind='convert',separate_romfs=True),
+                        dict(base,targets=['mac'],separate_romfs=True)):
+            self.assertEqual(self.client.post('/api/tasks',json=payload).status_code,400)
+        response=self.client.post('/api/tasks',json=dict(base,targets=['ios','mac'],separate_romfs=True))
+        self.assertEqual(response.status_code,200,response.text)
+        identity=response.json()['id']
+        task=json.loads((jobs.folder(identity)/'task.json').read_text())
+        self.assertIs(task['separate_romfs'],True)
+        self.assertNotIn('separate_romfs',task['settings'])
+        self.assertEqual(self.client.post(f'/api/tasks/{identity}/cancel').status_code,200)
+        retry=self.client.post(f'/api/tasks/{identity}/retry')
+        self.assertEqual(retry.status_code,200,retry.text)
+        retried=json.loads((jobs.folder(retry.json()['id'])/'task.json').read_text())
+        self.assertIs(retried['separate_romfs'],True)
+        default=self.client.post('/api/tasks',json=dict(base,targets=['mac'],separate_romfs=False))
+        self.assertEqual(default.status_code,200,default.text)
+        default_task=json.loads((jobs.folder(default.json()['id'])/'task.json').read_text())
+        self.assertIs(default_task['separate_romfs'],False)
+
+    def test_multiple_artifacts_are_downloadable(self):
+        jobs=self.app.state.jobs;jobs.stop.set();jobs.thread.join()
+        identity=jobs.create(dict(files=[],keys='none',kind='build',targets=['ios'],separate_romfs=True))
+        folder=jobs.folder(identity);outputs=folder/'outputs';outputs.mkdir()
+        names=('Game.ipa','Game.ipa.sha256','Game.romfs.zip','Game.romfs.zip.sha256')
+        for name in names:
+            (outputs/name).write_text(name)
+            emit(folder,'artifact',name=name)
+        (outputs/'unlisted.bin').write_text('x')
+        for name in names:
+            self.assertEqual(self.client.get(f'/api/tasks/{identity}/artifacts/{name}').status_code,200,name)
+        self.assertEqual(self.client.get(f'/api/tasks/{identity}/artifacts/unlisted.bin').status_code,404)
+
     def test_cancel_queued(self):
         jobs=self.app.state.jobs
         jobs.stop.set();jobs.thread.join()

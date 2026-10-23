@@ -10,6 +10,7 @@ import sys
 import time
 
 from . import staging
+from .build.romfs_archive import archive_path, discard_archive, verify_archive, verify_no_romfs
 from .capabilities import REPO, game, profiles
 from .jobs import emit
 from .packages import catalog, convert, entries
@@ -46,6 +47,11 @@ def execute(folder):
         from .dependencies import install
         install(folder, task, config, run)
         return
+    separate = task.get('separate_romfs') is True
+    if separate and task.get('kind') != 'build':
+        raise ValueError('Separate RomFS is only available for application builds')
+    if separate and 'ios' not in task.get('targets', []):
+        raise ValueError('Separate RomFS requires an iOS target')
     from .apple_tools import effective_config
     config = effective_config(config)
     toolroot = Path(config['tools'])
@@ -158,31 +164,64 @@ def execute(folder):
     stage = staging.ensure(REPO, stage_root)
     env.update(NX_STAGE_TREE=str(stage), NX_STAGE_KEY=stage.parent.name)
     env['PYTHONPATH'] = os.pathsep.join([str(stage), env.get('PYTHONPATH', '')])
+    published = set()
+    def publish(path):
+        path = Path(path)
+        if path.name in published:
+            return
+        if not path.is_file():
+            raise RuntimeError(f'Missing output: {path}')
+        with path.open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        path.with_name(path.name + '.sha256').write_text(digest + '  ' + path.name + '\n')
+        emit(folder, 'artifact', name=path.name)
+        emit(folder, 'artifact', name=path.name + '.sha256')
+        published.add(path.name)
+
     failed = []
     for target in task['targets']:
         emit(folder, 'stage', name=f'Building {target}')
         output = outputs / (title + ('.ipa' if target == 'ios' else '.app.zip'))
+        separate_target = separate and target == 'ios'
+        archive = archive_path(output) if separate_target else None
+        if separate_target:
+            discard_archive(archive)
         if platform.system() == 'Windows':
             command = [sys.executable, stage / 'webui/build/windows/build_ipa_windows.py', inputs, '--game', title,
                        '--keys', keys, '--tools', toolroot, '--out', output, '--env-file', envfile,
                        '--launch-defaults', defaults]
             for option in ('sdk', 'metal'):
                 if config.get(option): command += ['--' + option, config[option]]
+            if separate_target: command += ['--separate-romfs']
         else:
             command = [sys.executable, stage / 'scripts/build_ipa_from_nsp.py', inputs, '--keys', keys,
                        '--target', target, '--out', output, '--env-file', envfile, '--keep-extracted', '--progress', 'off']
+            if separate_target: command += ['--separate-romfs']
         try:
             run(folder, command, env, cwd=stage)
             if not output.is_file():
                 raise RuntimeError('Build did not produce its expected output.')
-            with output.open('rb') as stream:
-                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-            output.with_name(output.name + '.sha256').write_text(digest + '  ' + output.name + '\n')
-            emit(folder, 'artifact', name=output.name)
-            emit(folder, 'artifact', name=output.name + '.sha256')
+            if separate_target:
+                if not archive.is_file():
+                    raise RuntimeError('Build did not produce the separate RomFS archive.')
+                verify_archive(archive, g.get('romfs_marker'))
+                verify_no_romfs(output)
+            publish(output)
+            if separate_target:
+                publish(archive)
             emit(folder, 'target', target=target, status='succeeded')
         except Exception as error:
             failed.append(target)
+            if separate_target:
+                try:
+                    if output.is_file():
+                        verify_no_romfs(output)
+                        publish(output)
+                    if archive is not None and archive.is_file():
+                        verify_archive(archive, g.get('romfs_marker'))
+                        publish(archive)
+                except Exception:
+                    pass
             emit(folder, 'target', target=target, status='failed', message=str(error))
     if failed:
         raise RuntimeError('Failed targets: ' + ', '.join(failed) + '. Any successful outputs remain downloadable.')

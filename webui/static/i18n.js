@@ -158,6 +158,14 @@ Object.assign(zhMessages, {
 });
 Object.assign(zhMessages, {"Windows Metal tools come from Apple; choose the iPhoneOS SDK source above. See webui/docs/webui.md for offline bundles.": "Windows Metal 工具通过 Apple 获取，iPhoneOS SDK 可在上方选择下载来源。离线工具包说明见 webui/docs/webui.md。"});
 Object.assign(zhMessages, {"Local mode: discovers existing iPhoneOS SDKs and imports local archives. Automatic SDK network downloads are disabled.": "本地模式：检测已有 iPhoneOS SDK 并导入本地压缩包，不会自动联网下载 SDK。"});
+Object.assign(zhMessages, {
+  "Separate IPA and RomFS (iOS only)": "IPA 与 RomFS 分开打包（仅 iOS）",
+  "Install the IPA first. In the Files app, unzip the RomFS archive and move its top-level romfs folder into this app's Documents folder (Documents/romfs). macOS .app.zip builds always include their RomFS.": "请先安装 IPA。在“文件”App 中解压 RomFS 压缩包，把其中的顶层 romfs 文件夹移动到本应用的 Documents 文件夹（Documents/romfs）。macOS .app.zip 始终自带 RomFS。",
+  "RomFS archive": "RomFS 压缩包",
+  "Invalid RomFS packaging selection": "无效的 RomFS 打包选项",
+  "Separate RomFS is only available for application builds": "只有应用打包任务可以分离 RomFS",
+  "Separate RomFS requires an iOS target": "分离 RomFS 需要选择 iOS 目标"
+});
 let uiLanguage = localStorage.getItem('nx-ui-language') || (navigator.language.startsWith('zh') ? 'zh-CN' : 'en');
 if (!['zh-CN', 'en'].includes(uiLanguage)) uiLanguage = 'en';
 function t(text) {

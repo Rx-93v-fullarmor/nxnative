@@ -64,6 +64,7 @@ def main():
     ap.add_argument('--launch-defaults', type=Path)
     ap.add_argument('--icon', type=Path)
     ap.add_argument('--prepare-only', action='store_true')
+    ap.add_argument('--omit-romfs', action='store_true', help='Leave the RomFS out of the IPA (the separate archive is made by the caller)')
     ap.add_argument('--allow-incomplete-shaders', action='store_true', help='Produce an experimental IPA and record every missing shader')
     ap.add_argument('--experimental', action='store_true', help='Mark runtime features as experimental even when all shaders are present')
     a = ap.parse_args()
@@ -147,7 +148,7 @@ def main():
     if not (a.romfs / g.get('romfs_marker')).is_file():
         raise ValueError('Missing game RomFS marker')
     files = [(executable, 'DmIOS')]
-    for root, prefix in ((stage, ''), (a.romfs, 'romfs'), (shader_dir, 'msl/b-' + chain), (a.aoc, 'aoc')):
+    for root, prefix in ((stage, ''), (None if a.omit_romfs else a.romfs, 'romfs'), (shader_dir, 'msl/b-' + chain), (a.aoc, 'aoc')):
         if root:
             files += [(p, '/'.join(x for x in (prefix, p.relative_to(root).as_posix()) if x))
                       for p in sorted(root.rglob('*')) if p.is_file() and
@@ -187,6 +188,7 @@ def main():
                   shader_keys=len(keys), chain=chain, signed=False, minimum_ios='26.0',
                   missing_shader_keys=missing, unresolved_binding_shaders=unresolved,
                   experimental=bool(a.experimental or missing or unresolved),
+                  romfs_bundled=not a.omit_romfs, romfs_marker=g.get('romfs_marker'),
                   archive_source_hashes_verified=True, runtime_tested=False, file_sha256=hashes)
     a.out.with_suffix('.verification.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({k: v for k, v in report.items() if k != 'file_sha256'}, indent=2))

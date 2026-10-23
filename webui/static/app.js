@@ -52,6 +52,10 @@ function capability() {
   $('capability').textContent = t(profile?.reason || (profile?.graphics === 'vulkan' ? 'Vulkan game: MetalFX spatial upscaling is unavailable.' : 'Exact registered game versions are required for application builds.'));
   $('spatial').disabled = profile?.graphics === 'vulkan';
   if ($('spatial').disabled) $('spatial').value = '0';
+  const ios = $('ios').checked, building = $('kind').value === 'build';
+  $('separate-romfs').disabled = !building || !ios;
+  if ($('separate-romfs').disabled) $('separate-romfs').checked = false;
+  $('separate-romfs-hint').hidden = !building || !ios;
 }
 async function loadEnvironment() {
   env = await api('environment');
@@ -123,6 +127,7 @@ $('drop').ondrop = action(e => { e.preventDefault(); return upload(e.dataTransfe
 $('import').onclick = action(async () => { const result = await api('import',{method:'POST',body:JSON.stringify({path:$('local-path').value})}); inputs.push(result); renderInputs(); $('local-path').value=''; });
 $('inputs').onclick = action(async e => { const id=e.target.dataset.remove; if (!id) return; await api('uploads/'+id,{method:'DELETE'}); inputs=inputs.filter(x=>x.id!==id); renderInputs(); });
 $('kind').onchange = $('game').onchange = capability;
+$('ios').onchange = $('mac').onchange = capability;
 $('start').onclick = action(async () => {
   const keys = inputs.filter(x => x.name.toLowerCase().endsWith('.keys'));
   if (keys.length !== 1) throw new Error('Add exactly one prod.keys file.');
@@ -130,6 +135,7 @@ $('start').onclick = action(async () => {
   if ($('kind').value === 'build' && !targets.length) throw new Error('Select at least one output platform.');
   const result = await api('tasks',{method:'POST',body:JSON.stringify({kind:$('kind').value,game:$('game').value,
     files:inputs.filter(x=>!x.name.toLowerCase().endsWith('.keys')).map(x=>x.id),keys:keys[0].id,targets:targets.length?targets:['ios'],retain_keys:$('retain').checked,
+    separate_romfs:$('kind').value==='build'&&targets.includes('ios')&&$('separate-romfs').checked,
     settings:{DM_LANG:$('language').value,DM_OPMODE:$('mode').value,DM_METALFX_SPATIAL:$('spatial').value,DM_METALFX_OUTPUT_HEIGHT:$('resolution').value}})});
   message('Task queued: '+result.id.slice(0,8)); await refresh();
 });

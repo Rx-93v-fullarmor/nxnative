@@ -4,7 +4,7 @@ The WebUI uploads NSP/XCI files and keys, inspects content metadata, converts st
 
 ## Start
 
-Windows installs its own Python on first launch; macOS requires Python 3.11 or newer. Run `webui/launchers/start_webui.command` on macOS, `webui/launchers/start_webui.bat` on Windows, or:
+Windows installs its own Python on first launch; macOS requires Python 3.11 or newer. Run `./start-webui.sh` from the repository root on macOS (or double-click `start-webui.command`), `start-webui.bat` on Windows, or:
 
 ```sh
 python3 webui/launchers/start_webui.py
@@ -16,7 +16,7 @@ You may still override the location with `--data-dir` or `NX_DATA_DIR`, includin
 
 Open the URL printed by the launcher. The token is exchanged for a local session cookie and removed from the address bar. The service rejects foreign origins and non-loopback hosts. It is a local, single-user tool; do not expose it through a proxy or a public interface. Only one process may use a given data folder.
 
-`start_webui.bat` and `start_webui.command` are launch shortcuts. Set `NX_TOOLS_DIR` to use an external prepared tools folder. Windows always uses the project-local runtime; the Mac launcher uses the optional `runtime/bin/python3` in that tools folder or system Python. In Spyder, edit the settings at the top of `start_webui.py` and press F5.
+`start-webui.bat`, `start-webui.sh` and `start-webui.command` are launch shortcuts (the internal launchers are under `webui/launchers/`). Set `NX_TOOLS_DIR` to use an external prepared tools folder. Windows always uses the project-local runtime; the Mac launcher uses the optional `runtime/bin/python3` in that tools folder or system Python. In Spyder, edit the settings at the top of `start_webui.py` and press F5.
 
 ## Tools and platforms
 
@@ -39,7 +39,7 @@ The header language selector switches between Simplified Chinese and English and
 
 ## Windows installation
 
-1. Clone or download this branch, then double-click `webui/launchers/start_webui.bat`. The launcher downloads a portable Python into the project on first launch, verifies its pinned SHA-256, and reuses a working runtime on subsequent launches. Windows AMD64 and ARM64 packages are selected by host architecture; AMD64 startup has been exercised end to end. No system `python` command is needed.
+1. Clone or download this branch, then double-click `start-webui.bat` (or run `webui/launchers/start_webui.bat`). The launcher downloads a portable Python into the project on first launch, verifies its pinned SHA-256, and reuses a working runtime on subsequent launches. Windows AMD64 and ARM64 packages are selected by host architecture; AMD64 startup has been exercised end to end. No system `python` command is needed.
 2. Startup installs missing Python dependencies into `.webui-data/venv` and opens the local WebUI. No data-folder prompt or global pip configuration is needed. Startup output and failures are appended to `.webui-data/startup.log`; the BAT window stays open on failure. Retry the launcher after fixing network problems: verified archives and working environments are reused. Runtime files and the startup log remain in the repository even when `--data-dir` selects another task-data directory.
 3. Open **Environment & tools**, keep the default `.webui-data/tools` directory (or save a different directory), then select **Install all supported missing dependencies**. This downloads the official .NET 10 SDK for the host architecture, verifies its SHA-512 hash, and builds this repository's `nx_extract`. Python build packages can also be installed individually.
 4. Use **Install** for clang/lld and SPIRV-Cross, or include them in **Install all supported missing dependencies**. LLVM-MinGW is pinned to `20261020`, with AMD64/ARM64 archives and SHA-256 hashes. Installation verifies a real ARM64 Apple compile and Darwin link. SPIRV-Cross builds from verified sources with static C++ linkage. No Visual Studio, CMake, system PATH changes or administrator command is needed. A manually prepared Apple compiler is preserved if a separate native C++ builder is needed. AMD64 installation was exercised on Windows; ARM64 is not tested natively.
@@ -49,7 +49,7 @@ The header language selector switches between Simplified Chinese and English and
 ## macOS installation
 
 1. Use an Apple Silicon Mac. Install [Python 3.11 or newer](https://www.python.org/downloads/macos/) and [Xcode](https://developer.apple.com/xcode/). Open Xcode once and finish its requested component/license setup. If developer tools point at the standalone Command Line Tools instead of Xcode, choose Xcode in **Xcode > Settings > Locations > Command Line Tools**.
-2. Double-click `webui/launchers/start_webui.command`, or run `sh webui/launchers/start_webui.sh` from the repository root. Missing Python dependencies install automatically; data defaults to `.webui-data`.
+2. Run `./start-webui.sh` from the repository root (or double-click `start-webui.command`). Missing Python dependencies install automatically; data defaults to `.webui-data`.
 3. Open **Environment & tools**. Mac checks show Xcode SDKs, Xcode Metal and Mac tools; Windows SDK/Metal path inputs and Windows LLVM/lld checks are hidden. .NET is required on both platforms because the extractor and shader tools use C#; the generated applications do not require it. The detector probes SDK and runtime versions and reuses an existing .NET 10 SDK from PATH, Homebrew, standard system locations or `~/.dotnet`. Workers use that same SDK and runtime root. Only a missing compatible SDK needs downloading into the configured tools directory.
 4. Homebrew is optional. If present, the panel first uses its normal prefix. If Homebrew is absent or its install command fails, XcodeGen 2.46.0 comes from its official universal Mac ZIP; zstd 1.5.7 and SPIRV-Cross (Vulkan SDK 1.4.363.0 commit `f11ba9f0b21ba8fc15153d50a2a1ae31ab1cf8f7`) are built from pinned official source archives with Xcode's clang and make. All three archives have pinned SHA-256 checksums. No Homebrew bootstrap, CMake or administrator command runs. Fallback binaries install in `tools/bin`, XcodeGen resources in `tools/share`, and licenses in `tools/licenses`. Source compilation requires a configured Xcode installation. Xcode and Apple SDKs remain manual. Standard `/opt/homebrew/bin` and `/usr/local/bin` locations are detected even when launched from Finder.
 5. Select **Recheck**, then choose macOS and/or iOS output. Tool presence does not establish shader-chain compatibility; the existing build checks still enforce the repository's tool fingerprints. macOS installation and builds need validation on an actual Mac.
@@ -79,8 +79,21 @@ The WebUI does not accept arbitrary commands, package names or download URLs. In
 ## Workflow
 
 1. Upload files, or import existing absolute file paths to avoid another large upload. Chunk uploads resume after reselecting the same file in the same browser. Supply the base game and all profile-required updates.
-2. Choose **Build an app**, **Convert XCI to NSP**, or **Inspect game metadata**. For builds, choose iOS and/or macOS and the initial game language, handheld/docked mode, spatial upscaling, and output resolution.
+2. Choose **Build an app**, **Convert XCI to NSP**, or **Inspect game metadata**. For builds, choose iOS and/or macOS and the initial game language, handheld/docked mode, spatial upscaling, and output resolution. For iOS you can also tick **Separate IPA and RomFS** (off by default).
 3. Follow the task journal and log. Cancel stops the worker process tree. Downloads are limited to published artifacts. A target failure preserves any successful output from another target.
+
+### Separate IPA and RomFS (optional, iOS)
+
+When the checkbox is ticked, the iOS IPA is built without `Payload/DmIOS.app/romfs` and the task also produces:
+
+- `<title>.ipa` — the small IPA;
+- `<title>.ipa.sha256`;
+- `<title>.romfs.zip` — a Zip64 archive whose top level is `romfs/`;
+- `<title>.romfs.zip.sha256`.
+
+Install the IPA first. In the Files app, open **On My iPhone/iPad → \<App Name\> → Documents**, unzip the archive and move the inner `romfs` folder directly into `Documents`, so the game marker ends up at `Documents/romfs/<romfs_marker>`. Do not leave an extra `romfs/romfs` level, and delete an old `Documents/romfs` before copying. The app checks `Documents/romfs` before its bundled RomFS; without it the log says `game files not found`.
+
+macOS `.app.zip` always includes its RomFS. If both targets are selected, the iOS build produces the one archive and the macOS app stays self-contained. AOC/DLC stays in the IPA. A sideloading reinstall can create a new Documents container, so copy `romfs` again; the host needs roughly one extra RomFS of output space, and the device needs room for both the archive and the extracted folder.
 
 Language and operating mode apply before game launch. Both app launchers allow changing the defaults and restoring the packaged choices. Spatial upscaling uses Metal 4 FX on supported NVN devices, with ordinary presentation as fallback. It does not add frame generation or force the game's dynamic resolution off. Vulkan output disables the spatial option. Game settings/save data can override the requested language. Device gameplay and scaling quality still require testing on Apple hardware.
 

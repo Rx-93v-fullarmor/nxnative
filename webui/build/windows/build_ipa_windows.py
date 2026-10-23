@@ -38,6 +38,7 @@ def main():
     ap.add_argument('--sdk', type=Path, help='User-supplied iPhoneOS SDK')
     ap.add_argument('--env-file', type=Path)
     ap.add_argument('--launch-defaults', type=Path)
+    ap.add_argument('--separate-romfs', action='store_true', help='Leave the RomFS out of the IPA and write <ipa>.romfs.zip')
     ap.add_argument('--font', type=Path, default=Path('C:/Windows/Fonts/msyh.ttc'))
     ap.add_argument('--letter-font', type=Path, default=Path('C:/Windows/Fonts/arialbd.ttf'))
     a = ap.parse_args()
@@ -193,18 +194,40 @@ def main():
         command += ['--aoc', aoc]
     if a.env_file: command += ['--env-file', a.env_file.resolve()]
     if a.launch_defaults: command += ['--launch-defaults', a.launch_defaults.resolve()]
+    if a.separate_romfs: command += ['--omit-romfs']
     if (extracted / 'icon.jpg').exists():
         command += ['--icon', extracted / 'icon.jpg']
     run('ipa_pack', command)
     with ipa.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+    archive_digest = None
+    archive = None
+    if a.separate_romfs:
+        sys.path.insert(0, str(repo))
+        from webui.build.romfs_archive import (archive_path, pack_command, prepare_archive,
+                                               verify_archive, verify_no_romfs)
+        romfs = extracted / 'RomFS'
+        marker = g.get('romfs_marker')
+        archive = archive_path(ipa)
+        prepare_archive(archive, romfs, marker)
+        run('romfs_archive', pack_command(python, repo / 'dm/ios/tools/pack_ipa.py',
+                                          archive, romfs, g.get('zip_store', '')))
+        verify_archive(archive, marker)
+        verify_no_romfs(ipa)
+        with archive.open('rb') as stream:
+            archive_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     report_path = ipa.with_suffix('.verification.json')
     report = json.loads(report_path.read_text(encoding='utf-8'))
     report['ipa_sha256'] = digest
     report['shader_evidence_matches_existing_profile'] = True
+    if archive is not None:
+        report.update(romfs_separate=True, romfs_bundled=False,
+                      romfs_archive=str(archive.resolve()), romfs_archive_sha256=archive_digest)
     report['elapsed_seconds'] = round(time.monotonic() - started, 1)
     report_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(f'Completed: {ipa}\nSHA-256: {digest}', flush=True)
+    if archive is not None:
+        print(f'RomFS archive: {archive}\nSHA-256: {archive_digest}', flush=True)
 
 
 if __name__ == '__main__':

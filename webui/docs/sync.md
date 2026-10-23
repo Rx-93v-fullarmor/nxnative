@@ -12,7 +12,9 @@ Upstream: <https://github.com/seedds/nxnative>
 
 The histories have diverged (the GitHub compare reported 125 commits ahead and
 27 behind relative to the base). The nine hook patches in `webui/patches/` are
-pinned to the fork base. Do not merge upstream blind; port the hooks first.
+pinned to the fork base. Patches 0008/0009 also carry the optional separate
+RomFS hooks (`NX_SEPARATE_ROMFS` / `--separate-romfs`); keep them when porting.
+Do not merge upstream blind; port the hooks first.
 
 ## One-time setup
 

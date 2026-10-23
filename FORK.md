@@ -21,7 +21,7 @@ All fork-owned code lives under `webui/`:
 ## Start
 
 Windows: double-click `start-webui.bat` (or `webui\launchers\start_webui.bat`).
-macOS: double-click `start-webui.command` (or run `webui/launchers/start_webui.sh`).
+macOS: run `./start-webui.sh` in a terminal (or double-click `start-webui.command`; the internal launcher is `webui/launchers/start_webui.sh`).
 
 The launchers keep their data in the repository's `.webui-data/` directory. That
 directory is local-only and is added to `.git/info/exclude`; the upstream
@@ -37,6 +37,12 @@ stage is reused until a source file or patch changes.
 The only intentional direct edit to an upstream file is `dm/ios/project.yml`,
 which declares the iOS fullscreen launch configuration (`UIRequiresFullScreen`
 and `UILaunchScreen`). Everything else is a patch or an overlay.
+
+The optional **Separate IPA and RomFS** iOS build is off by default. When
+selected, the IPA leaves out `romfs/` and the task also produces a
+`<title>.romfs.zip` (top-level `romfs/`) with `webui/build/romfs_archive.py`;
+the Windows builder and patches 0008/0009 carry the hooks. The app reads
+`Documents/romfs` with no app-side change. macOS `.app.zip` stays self-contained.
 
 ## Upstream sync
 

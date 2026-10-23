@@ -34,6 +34,11 @@ class StagingTests(unittest.TestCase):
             self.assertIn('nvn_spatial.inc', (tree / 'dm/gfx/nvn/nvn_mtl.m').read_text(encoding='utf-8'))
             self.assertIn('webui/build/macos/pack_app.py',
                           (tree / 'scripts/build_ipa_from_nsp.py').read_text(encoding='utf-8'))
+            self.assertIn('--separate-romfs',
+                          (tree / 'scripts/build_ipa_from_nsp.py').read_text(encoding='utf-8'))
+            self.assertIn('NX_SEPARATE_ROMFS',
+                          (tree / 'dm/ios/tools/build_ipa.sh').read_text(encoding='utf-8'))
+            import webui.build.romfs_archive  # staged helper is importable
             self.assertEqual(tree, staging.ensure(REPO, root))
             staging.verify(tree)
             (tree / 'dm/ios/Sources/main.m').write_text('mutated', encoding='utf-8')

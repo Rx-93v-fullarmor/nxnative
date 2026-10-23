@@ -13,6 +13,8 @@ class FullscreenTests(unittest.TestCase):
         text = (REPO / 'dm/ios/project.yml').read_text(encoding='utf-8')
         self.assertRegex(text, r'(?m)^\s*UIRequiresFullScreen:\s*true\s*$')
         self.assertRegex(text, r'(?m)^\s*UILaunchScreen:\s*\{\s*\}\s*$')
+        self.assertRegex(text, r'(?m)^\s*UIFileSharingEnabled:\s*true\b')
+        self.assertRegex(text, r'(?m)^\s*LSSupportsOpeningDocumentsInPlace:\s*true\b')
         self.assertNotIn('UILaunchStoryboardName', text)
 
     def test_windows_pack_plist(self):
@@ -24,6 +26,8 @@ class FullscreenTests(unittest.TestCase):
         )
         self.assertIs(value['UIRequiresFullScreen'], True)
         self.assertEqual(value['UILaunchScreen'], {})
+        self.assertIs(value['UIFileSharingEnabled'], True)
+        self.assertIs(value['LSSupportsOpeningDocumentsInPlace'], True)
         self.assertNotIn('UILaunchStoryboardName', value)
         loaded = plistlib.loads(plistlib.dumps(value, fmt=plistlib.FMT_BINARY))
         self.assertIs(loaded['UIRequiresFullScreen'], True)

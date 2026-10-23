@@ -31,7 +31,12 @@ its original paths; everything here is safe to change without touching upstream.
    `webui/build/windows/build_ipa_windows.py`; macOS runs the staged
    `scripts/build_ipa_from_nsp.py` (patched to accept `--target mac` and launch
    defaults). nx_extract is built from the staged, patched C# project.
-4. Stage reuse is keyed by the source file manifest, platform, patch bytes and
+4. With the optional `--separate-romfs` (WebUI: **Separate IPA and RomFS**,
+   default off), the iOS IPA omits `Payload/DmIOS.app/romfs` and
+   `webui/build/romfs_archive.py` uses the upstream `pack_ipa.py` to write
+   `<ipa>.romfs.zip` with a top-level `romfs/`. The worker verifies both and
+   publishes the IPA, archive and their SHA-256 files.
+5. Stage reuse is keyed by the source file manifest, platform, patch bytes and
    overlay bytes. `NX_STAGE_REBUILD=1` forces a rebuild; `NX_STAGE_KEEP`
    controls garbage collection.
 
