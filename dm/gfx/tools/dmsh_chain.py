@@ -100,7 +100,7 @@ if __name__ == '__main__':
         for b in bad: print('[RED] translation chain tools do not match the lock file: ' + b)
         sys.exit(1 if bad else 0)
     elif a == ['--header']:
-        open(HEADER, 'w').write(header_text(version()))
+        os.makedirs(os.path.dirname(HEADER), exist_ok=True);open(HEADER, 'w').write(header_text(version()))
         print(version())
     elif a == ['--inputs']: print(inputs(load_game()))
     elif not a: print(version())
