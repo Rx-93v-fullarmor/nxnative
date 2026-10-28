@@ -3,9 +3,9 @@
 Usage: nso_syms.py <repo dm/host dir> <gameA ExeFS | -> <gameB ExeFS>   (A = the game the host already supports, B = the new one; - = no reference game, compare with the host hooks only)
 dm/games/profile_guess.py imports it (dynsyms, host_hooks) to guess a provisional profile."""
 import collections, glob, os, re, struct, sys
-import lz4.block
 
 def load(path):
+    import lz4.block   # Only NSO decoding needs LZ4; profile log parsing does not.
     d = open(path, 'rb').read()
     flags = struct.unpack_from('<I', d, 0xc)[0]
     segs = [struct.unpack_from('<III', d, 0x10 + i * 0x10) for i in range(3)]
@@ -34,6 +34,25 @@ def dynsyms(img):
         s = img[strtab + name:img.index(b'\0', strtab + name)].decode('latin1')
         if s: out.append((s, shndx != 0, info >> 4))
     return out
+
+def defined(img):   # {name: (offset, size)} of the module's defined dynamic symbols; {} without a symbol table (New Super Mario Bros. U Deluxe's sdk has none)
+    try:
+        mod0 = struct.unpack_from('<I', img, 4)[0]
+        if img[mod0:mod0 + 4] != b'MOD0': return {}
+        dyn = mod0 + struct.unpack_from('<i', img, mod0 + 4)[0]
+        tags = {}
+        for i in range(4096):
+            t, v = struct.unpack_from('<qQ', img, dyn + i * 16)
+            if t == 0: break
+            tags.setdefault(t, v)
+        symtab, strtab = tags[6], tags[5]
+        n = struct.unpack_from('<I', img, tags[4] + 4)[0] if 4 in tags else (strtab - symtab) // 24
+        out = {}
+        for i in range(1, n):
+            name, info, other, shndx, value, size = struct.unpack_from('<IBBHQQ', img, symtab + i * 24)
+            if shndx: out[bytes(img[strtab + name:img.index(b'\0', strtab + name)]).decode('latin1')] = (value, size)
+        return out
+    except (KeyError, ValueError, IndexError, struct.error): return {}
 
 def imports(exefs, mod='main'): return {s for s, defined, _ in dynsyms(load(os.path.join(exefs, mod))) if not defined}
 def exports(exefs, mod='sdk'): return {s for s, defined, bind in dynsyms(load(os.path.join(exefs, mod))) if defined and bind in (1, 2)}
