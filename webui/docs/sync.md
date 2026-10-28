@@ -13,7 +13,7 @@ vendor-drop equivalent is `sync/upstream-20261024`, the ported hooks are on
 
 Upstream-owned files are pristine except `dm/ios/project.yml`, so a normal
 merge is clean: the fork tree (`webui/`, `FORK.md`, root launchers and
-`.gitattributes`) does not overlap upstream. Patches 0008/0009 carry the
+`.gitattributes`) does not overlap upstream. Patches 0006/0007 carry the
 optional separate RomFS hooks (`NX_SEPARATE_ROMFS` / `--separate-romfs`); keep
 them when porting. `webui/provisional.py` mirrors upstream
 `scripts/build_ipa_from_nsp.py`'s survey and provisional-profile format for the
@@ -62,7 +62,7 @@ open `review` PR redundant. The workflow records `main` and upstream before runn
 publishes when:
 
 - the merge has exactly the expected parents;
-- the existing nine patches applied to the new upstream with `git apply`
+- the existing seven patches applied to the new upstream with `git apply`
   (exact context, offsets allowed);
 - the regenerated patches are non-empty, pass the strict `diffapply`/staging
   checks and the metadata was committed;
@@ -156,8 +156,8 @@ git switch -c hooks/upstream-$(date +%Y%m%d) upstream/main
 # Replay the previous hooks commit onto the new upstream, or apply
 # webui/patches/*.patch, and resolve the hunks upstream changed:
 #   git rebase --onto upstream/main <old upstream> <old hooks branch>
-# Keep the fork-only behaviour (POSIX paths, no_dead_strip, MetalFX, the
-# ObjC launch settings, --target mac, --separate-romfs and @NXEVENT).
+# Keep the fork-only behaviour (POSIX paths, no_dead_strip, the ObjC
+# launch settings, --separate-romfs and @NXEVENT).
 git commit -am "port fork hooks onto upstream main"
 ```
 

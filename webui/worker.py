@@ -40,6 +40,27 @@ def local_link(source, destination):
         shutil.copy2(source, destination)
 
 
+def build_env_pairs(settings):
+    """The WebUI's launch choices as upstream environment switches (the build's env file)."""
+    pairs = []
+    for key, value in settings.items():
+        if key == 'DM_METALFX_SPATIAL':
+            pairs.append(('DM_PRESENT_UPSCALE', 'metalfx' if value == '1' else 'off'))
+        elif key == 'DM_LANG':
+            if value != 'system': pairs.append((key, value))
+        elif key == 'DM_OPMODE':
+            pairs.append((key, value))
+    return pairs
+
+
+def zip_app(folder, app, output, env):
+    """Archive the Mac app folder as <title>.app.zip (ditto keeps symlinks, signatures and attributes)."""
+    if not app.is_dir():
+        raise RuntimeError('Build did not produce the Mac app.')
+    output.unlink(missing_ok=True)
+    run(folder, ['ditto', '-c', '-k', '--keepParent', app, output], env)
+
+
 def execute(folder):
     task = json.loads((folder / 'task.json').read_text(encoding='utf-8'))
     config = json.loads(os.environ['NX_WEB_CONFIG'])
@@ -209,7 +230,7 @@ def execute(folder):
     defaults = folder / 'launch-defaults.json'
     defaults.write_text(json.dumps(dict(settings, NX_WEBUI_RELEASE='1', NX_GRAPHICS=graphics)), encoding='utf-8')
     envfile = folder / 'launch.env'
-    envfile.write_text('\n'.join(f'{k}={v}' for k, v in settings.items()) + '\n', encoding='utf-8')
+    envfile.write_text('\n'.join(f'{k}={v}' for k, v in build_env_pairs(settings)) + '\n', encoding='utf-8')
     env = dict(os.environ, NX_PROGRESS='1', NX_LAUNCH_DEFAULTS=str(defaults))
     emit(folder, 'stage', name='Preparing staged sources')
     stage_root = Path(os.environ.get('NX_STAGE_ROOT') or (folder.parent.parent / 'stage'))
@@ -248,13 +269,18 @@ def execute(folder):
             if separate_target: command += ['--separate-romfs']
             if provisional_build: command += ['--provisional']
         else:
+            # upstream's own Mac app (--platform mac-app) writes a .app folder; it is zipped below into the .app.zip output
+            built = output.with_suffix('') if target == 'mac' else output
             command = [sys.executable, stage / 'scripts/build_ipa_from_nsp.py', inputs, '--keys', keys,
-                       '--target', target, '--out', output, '--env-file', envfile, '--keep-extracted', '--progress', 'off']
+                       '--platform', 'mac-app' if target == 'mac' else 'ios', '--out', built,
+                       '--env-file', envfile, '--keep-extracted', '--progress', 'off']
             if separate_target: command += ['--separate-romfs']
             if provisional_build:
                 command += ['--provisional', '--profile-out', str((folder / 'profile').resolve())]
         try:
             run(folder, command, env, cwd=stage)
+            if platform.system() != 'Windows' and target == 'mac':
+                zip_app(folder, built, output, env)
             if not output.is_file():
                 raise RuntimeError('Build did not produce its expected output.')
             if separate_target:

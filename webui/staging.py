@@ -1,7 +1,7 @@
 """Materialize a build staging tree from the working tree.
 
-The stage is a full copy (never a writable hardlink) of the repository with seven
-fork-only source overlays and nine upstream hook patches applied.  Builds run
+The stage is a full copy (never a writable hardlink) of the repository with five
+fork-only source overlays and seven upstream hook patches applied.  Builds run
 only from the stage, so the working tree's upstream files stay untouched.
 """
 from __future__ import annotations
@@ -24,8 +24,6 @@ OVERLAY_ROOT = REPO / 'webui' / 'overlays'
 PATCH_ROOT = REPO / 'webui' / 'patches'
 
 OVERLAY_TARGETS = {
-    'dm/gfx/nvn/nvn_spatial.inc',
-    'dm/gfx/nvn/nvn_spatial_size.h',
     'dm/ios/Sources/DmLaunchSettings.h',
     'dm/ios/Sources/DmLaunchSettings.m',
     'dm/ios/Sources/DmPerfHud.m',

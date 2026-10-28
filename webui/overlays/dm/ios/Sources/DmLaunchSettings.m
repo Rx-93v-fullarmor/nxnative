@@ -63,14 +63,13 @@ void dm_launch_settings_apply(void) {
         if (reason) effective = i == 2 ? @"1" : @"0";
         if (i == 0 && [effective isEqualToString:@"system"]) effective = systemLanguage();
         setenv(envKeys()[i].UTF8String, effective.UTF8String, 1);
-        if(i==4)setenv("DM_METALFX_PRESENT",effective.UTF8String,1);
+        if (i == 3) setenv("DM_PRESENT_UPSCALE", [effective isEqualToString:@"1"] ? "metalfx" : "off", 1);   // upstream's setting (dm/games/settings.tsv)
         fprintf(stderr, "settings: %s requested=%s effective=%s%s%s\n", keys()[i].UTF8String,
                 requested.UTF8String, effective.UTF8String, reason ? " reason=" : "", reason.UTF8String ?: "");
     }
     setenv("DM_LAUNCHER", "0", 1);   // the fork's ObjC settings screen is the launcher; keep the upstream Swift launcher out of the way
     if (getenv("DM_PERF_HUD") && atoi(getenv("DM_PERF_HUD"))) setenv("DM_SHOW_FPS", "0", 1);   // the HUD already shows FPS
     setenv("DM_DYNAMIC_RESOLUTION", "1", 1);
-    setenv("DM_METALFX_INTERPOLATION", "0", 1);
     fprintf(stderr, "settings: game=%s iOS=%s\n", DM_GAME_ID, UIDevice.currentDevice.systemVersion.UTF8String);
 }
 

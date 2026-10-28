@@ -1,0 +1,14 @@
+diff --git a/dm/ios/tools/build_ipa.sh b/dm/ios/tools/build_ipa.sh
+index 86aab59..e41a39e 100755
+--- a/dm/ios/tools/build_ipa.sh
++++ b/dm/ios/tools/build_ipa.sh
+@@ -155,7 +155,8 @@ APP=$DD/Build/Products/Release-iphoneos/DmIOS.app
+ rm -rf "$APP/msl" "$O/Payload"   # Payload/: what the copy-and-zip packing left behind, as was out.ipa (and its index) unless it is the IPA packed here, which a repeat pack reuses
+ [ "$O/out.ipa" -ef "$OUT_IPA" ] || rm -f "$O/out.ipa"; [ "$O/out.ipa.idx" -ef "$OUT_IPA.idx" ] || rm -f "$O/out.ipa.idx"
+ P=Payload/DmIOS.app
+-if [ -f "$ROMFS" ]; then MAPS=("$P/romfs.img=$ROMFS"); else MAPS=("$P/romfs=$ROMFS"); fi
++if [ "${NX_SEPARATE_ROMFS:-}" = 1 ]; then MAPS=(); elif [ -f "$ROMFS" ]; then MAPS=("$P/romfs.img=$ROMFS"); else MAPS=("$P/romfs=$ROMFS"); fi
++if [ -n "${NX_LAUNCH_DEFAULTS:-}" ]; then cp "$NX_LAUNCH_DEFAULTS" "$APP/launch-defaults.json" || die "copy launch defaults"; else rm -f "$APP/launch-defaults.json"; fi
+ if [ -n "$AOC" ] && [ -d "$AOC" ]; then MAPS+=("$P/aoc=$AOC"); t "add-on content: $(ls "$AOC" | tr '\n' ' ')"; fi
+ if [ -n "${PSO:-}" ]; then MAPS+=("$P/pso=$PSO"); fi
+ MAPS+=("$P/msl/$MSLDIR=$MSL_IOS/$MSLDIR" "$P=$APP")

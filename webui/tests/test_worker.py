@@ -46,8 +46,15 @@ class WorkerSeparateRomfsTests(unittest.TestCase):
         def fake_run(folder, command, env=None, cwd=None):
             command = [str(x) for x in command]
             commands.append(command)
+            if command[0] == 'ditto':   # the Mac app folder archived as .app.zip
+                with zipfile.ZipFile(command[-1], 'w') as archive:
+                    archive.writestr('Game.app/Contents/MacOS/Launch', b'x')
+                return
             output = Path(command[command.index('--out') + 1])
             output.parent.mkdir(parents=True, exist_ok=True)
+            if '--platform' in command and command[command.index('--platform') + 1] == 'mac-app':
+                (output / 'Contents').mkdir(parents=True, exist_ok=True)
+                return
             with zipfile.ZipFile(output, 'w') as archive:
                 archive.writestr('Payload/DmIOS.app/DmIOS', b'x')
             if '--separate-romfs' in command:
@@ -91,9 +98,18 @@ class WorkerSeparateRomfsTests(unittest.TestCase):
         self.assertEqual(artifacts, ['inspection.json', TITLE + '.app.zip', TITLE + '.app.zip.sha256',
                                      TITLE + '.ipa', TITLE + '.ipa.sha256',
                                      TITLE + '.romfs.zip', TITLE + '.romfs.zip.sha256'])
-        self.assertEqual(len(commands), 2)
-        self.assertNotIn('--separate-romfs', commands[0])
-        self.assertIn('--separate-romfs', commands[1])
+        builds = [c for c in commands if c[0] != 'ditto']
+        self.assertEqual(len(builds), 2)
+        self.assertIn('mac-app', builds[0])
+        self.assertNotIn('--separate-romfs', builds[0])
+        self.assertIn('--separate-romfs', builds[1])
+
+    def test_launch_choices_become_upstream_switches(self):
+        pairs = worker.build_env_pairs({'DM_LANG': 'system', 'DM_OPMODE': '1', 'DM_METALFX_SPATIAL': '1',
+                                        'DM_METALFX_OUTPUT_HEIGHT': 'auto'})
+        self.assertEqual(pairs, [('DM_OPMODE', '1'), ('DM_PRESENT_UPSCALE', 'metalfx')])
+        self.assertEqual(worker.build_env_pairs({'DM_LANG': 'ja', 'DM_METALFX_SPATIAL': '0'}),
+                         [('DM_LANG', 'ja'), ('DM_PRESENT_UPSCALE', 'off')])
 
     def test_output_folder_receives_finished_artifacts(self):
         delivered = self.root / 'delivered'
