@@ -6,3 +6,7 @@
 0003-hle-count-targetconditionals.patch dm/host/hle_count.c
 0004-nx-extract-catalog.patch dm/tools/nx_extract/Program.cs
 0005-build-ipa-from-nsp-webui.patch scripts/build_ipa_from_nsp.py
+0006-launcher-ui-translations.patch dm/games/settings.py
+0007-launcher-ui-language-model.patch dm/ios/Sources/LauncherSettings.swift
+0008-launcher-ui-language-picker.patch dm/ios/Sources/Launcher.swift
+0009-launcher-ui-language-rows.patch dm/ios/Sources/LauncherRow.swift

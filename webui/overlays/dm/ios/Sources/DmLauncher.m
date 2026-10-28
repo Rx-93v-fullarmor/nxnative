@@ -60,12 +60,20 @@ static NSSet<NSString *> *keyList(const char *name) {   // a space-separated lis
 @property(readonly) BOOL ignoreSaved;                // DM_SAVED_CHOICES=0: start from the defaults, and leave the saved choices as they are
 @property(readonly) NSMutableDictionary<NSString *, NSString *> *values;
 @property(readonly) NSUserDefaults *defaults;
+@property(nonatomic, copy) NSString *uiLanguage;
+@property(readonly) NSDictionary<NSString *, NSString *> *uiTranslations;
+- (instancetype)initWithSettings:(NSArray<NSDictionary *> *)settings translations:(NSDictionary *)translations;
+- (NSString *)text:(NSString *)english;
 @end
 
 @implementation DmLauncherModel
-- (instancetype)initWithSettings:(NSArray<NSDictionary *> *)settings {
+- (instancetype)initWithSettings:(NSArray<NSDictionary *> *)settings translations:(NSDictionary *)translations {
     if (!(self = [super init])) return nil;
     _defaults = NSUserDefaults.standardUserDefaults;
+    _uiTranslations = [translations isKindOfClass:NSDictionary.class] ? translations : @{};
+    NSString *savedUI = [_defaults stringForKey:@"launcher.uiLanguage"];
+    _uiLanguage = [@[@"en", @"zh-Hans"] containsObject:savedUI ?: @""] ? savedUI :
+        ([NSLocale.preferredLanguages.firstObject hasPrefix:@"zh"] ? @"zh-Hans" : @"en");
     _settings = settings;
     _fromLaunch = keyList("DM_ENV_LAUNCH_KEYS");
     NSMutableSet *fixed = [_fromLaunch mutableCopy]; [fixed unionSet:keyList("DM_ENV_FILE_KEYS")]; _fixed = fixed;
@@ -82,6 +90,14 @@ static NSSet<NSString *> *keyList(const char *name) {   // a space-separated lis
         _values[env] = (sv && accepts(s, sv)) ? sv : str(s, @"default");   // a saved choice the game no longer offers: its default
     }
     return self;
+}
+- (void)setUiLanguage:(NSString *)language {
+    _uiLanguage = [language copy];
+    [_defaults setObject:_uiLanguage forKey:@"launcher.uiLanguage"];
+}
+- (NSString *)text:(NSString *)english {
+    NSString *translated = _uiTranslations[english];
+    return [_uiLanguage isEqualToString:@"zh-Hans"] && [translated isKindOfClass:NSString.class] ? translated : english;
 }
 - (NSString *)valueOf:(NSDictionary *)s { return _values[str(s, @"env")] ?: str(s, @"default"); }
 - (NSArray<NSString *> *)sections {
@@ -161,6 +177,8 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
     NSArray<NSString *> *_sections;   // the sections that have a visible row, then the reset and memory sections
     NSTimer *_timer;
     UILabel *_memory;
+    UILabel *_titleLabel, *_versionLabel, *_languageLabel;
+    UIButton *_playControl, *_languageControl;
 }
 - (instancetype)initWithModel:(DmLauncherModel *)model play:(void (^)(void))play {
     if (!(self = [super init])) return nil;
@@ -181,7 +199,7 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
     SEL glass = NSSelectorFromString(@"prominentGlassButtonConfiguration");   // iOS 26 (.glassProminent); the SDK may predate it
     if ([UIButtonConfiguration respondsToSelector:glass]) c = ((UIButtonConfiguration * (*)(id, SEL)) objc_msgSend)(UIButtonConfiguration.class, glass);
     if (!c) c = [UIButtonConfiguration filledButtonConfiguration];   // .borderedProminent
-    c.title = @"Play"; c.buttonSize = UIButtonConfigurationSizeLarge;
+    c.title = [_m text:@"Play"]; c.buttonSize = UIButtonConfigurationSizeLarge;
     c.titleTextAttributesTransformer = ^NSDictionary *(NSDictionary *a) {
         NSMutableDictionary *d = [a mutableCopy];
         d[NSFontAttributeName] = [UIFont systemFontOfSize:[UIFont preferredFontForTextStyle:UIFontTextStyleTitle3].pointSize weight:UIFontWeightSemibold];   // .title3.weight(.semibold)
@@ -194,19 +212,27 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.systemBackgroundColor;
-    UIStackView *left = [UIStackView new]; left.axis = UILayoutConstraintAxisVertical; left.alignment = UIStackViewAlignmentCenter; left.spacing = 16;
+    UIStackView *left = [UIStackView new]; left.axis = UILayoutConstraintAxisVertical; left.alignment = UIStackViewAlignmentCenter; left.spacing = 12;
     UIImage *icon = appIcon();
     if (icon) {
         UIImageView *v = [[UIImageView alloc] initWithImage:icon];
         v.layer.cornerRadius = 22; v.clipsToBounds = YES; v.isAccessibilityElement = NO;
-        [v.widthAnchor constraintEqualToConstant:96].active = YES; [v.heightAnchor constraintEqualToConstant:96].active = YES;
+        [v.widthAnchor constraintEqualToConstant:80].active = YES; [v.heightAnchor constraintEqualToConstant:80].active = YES;
         [left addArrangedSubview:v];
     }
     UILabel *title = [self labelWithText:info(@"CFBundleDisplayName") ?: @"Game" style:UIFontTextStyleTitle1 secondary:NO];
     title.font = [UIFont systemFontOfSize:title.font.pointSize weight:UIFontWeightBold]; title.textAlignment = NSTextAlignmentCenter;
     [left addArrangedSubview:title];
-    [left addArrangedSubview:[self labelWithText:[NSString stringWithFormat:@"Version %@", info(@"CFBundleShortVersionString") ?: @""] style:UIFontTextStyleCallout secondary:YES]];
-    [left addArrangedSubview:[self playButton]];
+    _titleLabel = title;
+    _versionLabel = [self labelWithText:@"" style:UIFontTextStyleCallout secondary:YES];
+    [left addArrangedSubview:_versionLabel];
+    _playControl = [self playButton]; [left addArrangedSubview:_playControl];
+    _languageLabel = [self labelWithText:@"" style:UIFontTextStyleCaption1 secondary:YES];
+    _languageControl = [UIButton buttonWithType:UIButtonTypeSystem];
+    _languageControl.showsMenuAsPrimaryAction = YES;
+    UIStackView *language = [[UIStackView alloc] initWithArrangedSubviews:@[_languageLabel, _languageControl]];
+    language.axis = UILayoutConstraintAxisVertical; language.alignment = UIStackViewAlignmentCenter;
+    [left addArrangedSubview:language];
     left.translatesAutoresizingMaskIntoConstraints = NO;
     UIView *panel = [UIView new]; panel.translatesAutoresizingMaskIntoConstraints = NO; [panel addSubview:left];
     _table = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
@@ -223,6 +249,24 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
     _timer = [NSTimer scheduledTimerWithTimeInterval:2 repeats:YES block:^(NSTimer *t) { [self updateMemory]; }];   // the memory line follows every 2 seconds
 }
 - (void)reload {
+    _titleLabel.text = info(@"CFBundleDisplayName") ?: [_m text:@"Game"];
+    _versionLabel.text = [NSString stringWithFormat:@"%@ %@", [_m text:@"Version"], info(@"CFBundleShortVersionString") ?: @""];
+    UIButtonConfiguration *playConfig = _playControl.configuration; playConfig.title = [_m text:@"Play"]; _playControl.configuration = playConfig;
+    _languageLabel.text = [_m text:@"Interface language"];
+    _languageControl.accessibilityLabel = _languageLabel.text;
+    NSMutableArray *languages = [NSMutableArray array];
+    __weak DmLauncherController *weakSelf = self;
+    for (NSArray *item in @[@[@"en", @"English"], @[@"zh-Hans", @"\u7B80\u4F53\u4E2D\u6587"]]) {
+        UIAction *action = [UIAction actionWithTitle:item[1] image:nil identifier:nil handler:^(UIAction *a) {
+            DmLauncherController *controller = weakSelf;
+            if (!controller) return;
+            controller->_m.uiLanguage = item[0]; [controller reload];
+        }];
+        action.state = [_m.uiLanguage isEqualToString:item[0]] ? UIMenuElementStateOn : UIMenuElementStateOff;
+        if (action.state == UIMenuElementStateOn) [_languageControl setTitle:item[1] forState:UIControlStateNormal];
+        [languages addObject:action];
+    }
+    _languageControl.menu = [UIMenu menuWithChildren:languages];
     NSMutableArray *s = [NSMutableArray array];
     for (NSString *section in _m.sections) if ([_m rowsInSection:section].count) [s addObject:section];
     _sections = s;
@@ -232,19 +276,19 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
 - (void)updateMemory { _memory.text = [self memoryText]; }
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)t { return _sections.count + 2; }
 - (NSInteger)tableView:(UITableView *)t numberOfRowsInSection:(NSInteger)n { return n < (NSInteger)_sections.count ? [_m rowsInSection:_sections[n]].count : 1; }
-- (NSString *)tableView:(UITableView *)t titleForHeaderInSection:(NSInteger)n { return n < (NSInteger)_sections.count ? _sections[n] : nil; }
-- (NSString *)tableView:(UITableView *)t titleForFooterInSection:(NSInteger)n { return n == (NSInteger)_sections.count ? @"Brings back all settings this game was tested with." : nil; }
+- (NSString *)tableView:(UITableView *)t titleForHeaderInSection:(NSInteger)n { return n < (NSInteger)_sections.count ? [_m text:_sections[n]] : nil; }
+- (NSString *)tableView:(UITableView *)t titleForFooterInSection:(NSInteger)n { return n == (NSInteger)_sections.count ? [_m text:@"Brings back all settings this game was tested with."] : nil; }
 - (UITableViewCell *)tableView:(UITableView *)t cellForRowAtIndexPath:(NSIndexPath *)p {
     UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:nil];
     if (p.section == (NSInteger)_sections.count) {   // Reset to tested defaults
         UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
-        [b setTitle:@"Reset to tested defaults" forState:UIControlStateNormal];
+        [b setTitle:[_m text:@"Reset to tested defaults"] forState:UIControlStateNormal];
         b.enabled = _m.changed; b.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeading;
         [b addAction:[UIAction actionWithHandler:^(UIAction *a) { [self->_m reset]; [self reload]; }] forControlEvents:UIControlEventTouchUpInside];
         [self pin:b in:cell]; return cell;
     }
     if (p.section == (NSInteger)_sections.count + 1) {   // Memory available
-        UILabel *name = [self labelWithText:@"Memory available" style:UIFontTextStyleBody secondary:NO];
+        UILabel *name = [self labelWithText:[_m text:@"Memory available"] style:UIFontTextStyleBody secondary:NO];
         _memory = [self labelWithText:[self memoryText] style:UIFontTextStyleBody secondary:YES];
         _memory.font = [UIFont monospacedDigitSystemFontOfSize:_memory.font.pointSize weight:UIFontWeightRegular];
         UIStackView *row = [[UIStackView alloc] initWithArrangedSubviews:@[name, _memory]]; row.distribution = UIStackViewDistributionEqualSpacing;
@@ -263,10 +307,10 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
 - (void)fill:(UITableViewCell *)cell with:(NSDictionary *)s {
     NSString *env = str(s, @"env"), *kind = str(s, @"kind");
     BOOL locked = [_m.fixed containsObject:env];
-    NSString *note = str(s, @"note");
-    if (locked) note = [(note.length ? [note stringByAppendingString:@" · "] : @"") stringByAppendingString:[_m.fromLaunch containsObject:env] ? @"Set at launch" : @"Set by an env file"];
+    NSString *note = [_m text:str(s, @"note")];
+    if (locked) note = [(note.length ? [note stringByAppendingString:@" · "] : @"") stringByAppendingString:[_m text:[_m.fromLaunch containsObject:env] ? @"Set at launch" : @"Set by an env file"]];
     UIStackView *label = [UIStackView new]; label.axis = UILayoutConstraintAxisVertical; label.spacing = 4;
-    [label addArrangedSubview:[self labelWithText:str(s, @"label") style:UIFontTextStyleBody secondary:NO]];
+    [label addArrangedSubview:[self labelWithText:[_m text:str(s, @"label")] style:UIFontTextStyleBody secondary:NO]];
     if (note.length) [label addArrangedSubview:[self labelWithText:note style:UIFontTextStyleFootnote secondary:YES]];
     [label setContentHuggingPriority:UILayoutPriorityDefaultLow forAxis:UILayoutConstraintAxisHorizontal];
     NSString *value = [_m valueOf:s];
@@ -275,9 +319,9 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
         NSMutableArray *actions = [NSMutableArray array]; NSString *current = value;
         for (NSArray *o in s[@"options"]) {
             if (![o isKindOfClass:NSArray.class] || o.count < 2) continue;
-            UIAction *a = [UIAction actionWithTitle:o[1] image:nil identifier:nil handler:^(UIAction *x) { self->_m.values[env] = o[0]; [self reload]; }];
+            UIAction *a = [UIAction actionWithTitle:[_m text:o[1]] image:nil identifier:nil handler:^(UIAction *x) { self->_m.values[env] = o[0]; [self reload]; }];
             a.state = [o[0] isEqualToString:value] ? UIMenuElementStateOn : UIMenuElementStateOff;
-            if (a.state == UIMenuElementStateOn) current = o[1];
+            if (a.state == UIMenuElementStateOn) current = [_m text:o[1]];
             [actions addObject:a];
         }
         UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -293,7 +337,7 @@ static NSString *info(NSString *key) { id v = [NSBundle.mainBundle objectForInfo
         pct.font = [UIFont monospacedDigitSystemFontOfSize:pct.font.pointSize weight:UIFontWeightRegular];
         UIStackView *top = [[UIStackView alloc] initWithArrangedSubviews:@[label, pct]]; top.spacing = 12; top.alignment = UIStackViewAlignmentTop;
         [pct setContentHuggingPriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
-        UISlider *sl = [UISlider new]; sl.minimumValue = lo; sl.maximumValue = hi; sl.value = v; sl.accessibilityLabel = str(s, @"label");
+        UISlider *sl = [UISlider new]; sl.minimumValue = lo; sl.maximumValue = hi; sl.value = v; sl.accessibilityLabel = [_m text:str(s, @"label")];
         __weak UISlider *weak = sl;
         [sl addAction:[UIAction actionWithHandler:^(UIAction *a) {   // Slider(step:): snap to the step
             double x = weak.value; if (step > 0) x = MIN(hi, MAX(lo, lo + round((x - lo) / step) * step));
@@ -330,9 +374,9 @@ bool dm_show_launcher(void *viewController, void (*done)(void)) {
     }
     if (!valid) { fputs("[RED] launcher: dm/launcher.json cannot be read; starting the game\n", stderr); return false; }
     const char *off = getenv("DM_LAUNCHER");
-    if (off && !strcmp(off, "0")) { fputs("launcher: off (DM_LAUNCHER=0)\n", stderr); [[[DmLauncherModel alloc] initWithSettings:list] applySaved]; return false; }
+    if (off && !strcmp(off, "0")) { fputs("launcher: off (DM_LAUNCHER=0)\n", stderr); [[[DmLauncherModel alloc] initWithSettings:list translations:file[@"uiTranslations"]] applySaved]; return false; }
     UIViewController *parent = (__bridge UIViewController *)viewController;
-    DmLauncherModel *model = [[DmLauncherModel alloc] initWithSettings:list];
+    DmLauncherModel *model = [[DmLauncherModel alloc] initWithSettings:list translations:file[@"uiTranslations"]];
     __block DmLauncherController *host = nil;
     host = [[DmLauncherController alloc] initWithModel:model play:^{
         DmLauncherController *h = host;

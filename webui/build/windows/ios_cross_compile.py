@@ -14,6 +14,19 @@ import subprocess
 import sys
 
 
+def chain_overlay(repo, profile, out):
+    """Resolve NVN's quoted chain include to this Windows build's header."""
+    header = profile / 'dmsh_chain.h'
+    if not header.is_file():
+        raise ValueError('Windows shader chain header is missing; run windows_shader_build.py first: ' + str(header))
+    overlay = out / 'chain-overlay.json'
+    overlay.write_text(json.dumps({'version': 0, 'case-sensitive': 'false', 'roots': [
+        {'type': 'file', 'name': (repo / 'dm/gfx/nvn/dmsh_chain.h').as_posix(),
+         'external-contents': header.as_posix()}
+    ]}, indent=2) + '\n', encoding='utf-8')
+    return overlay
+
+
 def source_list(repo):
     host = repo / 'dm/host'
     text = (host / 'Makefile').read_text(encoding='utf-8')
@@ -70,6 +83,7 @@ def main():
     (out / 'include').mkdir(parents=True, exist_ok=True)
     (out / 'objects').mkdir(exist_ok=True)
     (out / 'logs').mkdir(exist_ok=True)
+    overlay = chain_overlay(repo, profile, out)
     sys.path.insert(0, str(repo / 'dm/games'))
     import game
     g = game.Game(profile)
@@ -82,6 +96,7 @@ def main():
     common = [str(clang), '-target', 'arm64-apple-ios26.0', '-isysroot', str(sdk),
               '-F', str(sdk / 'System/Library/SubFrameworks'),
               '-DUSE_UIKIT_PUBLIC_HEADERS=1', '-fobjc-arc', f'-mcpu={args.cpu}',
+              '-ivfsoverlay', str(overlay),
               '-O1', '-g', '-Wno-deprecated-declarations', '-Wno-unused-function']
     common += [f'-I{p}' for p in dict.fromkeys(includes)]
 

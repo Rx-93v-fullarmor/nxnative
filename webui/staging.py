@@ -2,7 +2,7 @@
 
 The stage is a full copy (never a writable hardlink) of the repository with the
 fork's source overlays and the upstream hook patches applied; for the 'objc' launcher the ObjC port replaces
-upstream's Swift launcher files, for 'swiftui' they are left as they are.  Builds run
+upstream's Swift launcher files; 'swiftui' keeps them with the UI hook patches. Builds run
 only from the stage, so the working tree's upstream files stay untouched.
 """
 from __future__ import annotations
@@ -187,7 +187,7 @@ def ensure(root: Path = REPO, stage_root: Path | None = None, force: bool = Fals
            launcher: str = 'objc') -> Path:
     """Create or reuse a stage; return the tree directory inside it.
 
-    launcher 'objc' puts the ObjC port of the launcher in place of upstream's Swift files; 'swiftui' keeps upstream's."""
+    launcher 'objc' puts the ObjC port in place of Swift; 'swiftui' keeps Swift with the UI hooks."""
     stage_root = Path(stage_root or os.environ.get('NX_STAGE_ROOT') or root / '.webui-data' / 'stage')
     stage_root = stage_root.expanduser().resolve()
     stage_root.mkdir(parents=True, exist_ok=True)
@@ -226,6 +226,8 @@ def ensure(root: Path = REPO, stage_root: Path | None = None, force: bool = Fals
             patches = []
             log = []
             for patch, target in patch_queue():
+                if launcher == 'objc' and target in OBJC_REMOVED:
+                    continue   # Swift-only UI hooks; the ObjC overlay implements them.
                 target_path = tree / target
                 if not target_path.is_file():
                     raise ValueError(f'patch target missing: {target}')

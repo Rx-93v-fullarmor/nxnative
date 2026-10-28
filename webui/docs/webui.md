@@ -99,6 +99,12 @@ macOS `.app.zip` always includes its RomFS. If both targets are selected, the iO
 
 The game language is the build's default (`--language`). The launcher, shown before the game starts on iOS (either implementation) and in the Mac app, lets the player change it and every other setting (console mode, MetalFX upscaling, ...) and restore the tested defaults; both iOS launchers read the same `dm/launcher.json`, so they show the same screen. The Windows iOS cross-build writes that file too (`dm/games/settings.py`). Game settings/save data can override the requested language. Device gameplay and scaling quality still require testing on Apple hardware.
 
+Both iOS launchers also have **Interface language** beside Play, with English and
+Simplified Chinese. It changes the launcher text immediately and remembers the
+choice independently of Game language. The first launch follows the device's
+language; resetting game settings keeps this interface preference. Rebuild the app
+to include this control in an existing IPA.
+
 XCI conversion validates container bounds, partition hashes, CNMT content membership and content hashes, then streams the original encrypted NCA files into standard NSP containers. Multi-title secure partitions produce separate NSPs. Compressed/split XCI formats are not supported. The converter does not acquire keys or game files.
 
 NSZ uploads are losslessly decompressed to NSP with the pinned MIT-licensed `nsz` package, using the task's uploaded keys. The resulting NSPs are published as artifacts; a converted NSZ can then be used in a build like any other NSP. A modified/corrupt NSZ or XCI whose NCA hashes no longer match its metadata is rejected rather than converted into an invalid NSP.

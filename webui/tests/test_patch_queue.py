@@ -11,13 +11,17 @@ MARKERS = {
     '0003-hle-count-targetconditionals.patch': ['TargetConditionals'],
     '0004-nx-extract-catalog.patch': ['--catalog'],
     '0005-build-ipa-from-nsp-webui.patch': ['@NXEVENT', '--separate-romfs', 'RomFS archive'],
+    '0006-launcher-ui-translations.patch': ['uiTranslations', 'launcher.zh-Hans.json'],
+    '0007-launcher-ui-language-model.patch': ['launcher.uiLanguage', 'func text'],
+    '0008-launcher-ui-language-picker.patch': ['Interface language', '$m.uiLanguage'],
+    '0009-launcher-ui-language-rows.patch': ['m.text(s.label)', 'm.text($0[1])'],
 }
 
 
 class PatchQueueTests(unittest.TestCase):
     def test_patches_apply_and_add_markers(self):
         queue = staging.patch_queue()
-        self.assertEqual(len(queue), 5)
+        self.assertEqual(len(queue), len(MARKERS))
         for patch, target in queue:
             data = diffapply.apply_file(REPO / target, patch.read_bytes(), target)
             text = data.decode('utf-8')

@@ -10,7 +10,7 @@ import re
 import unittest
 from pathlib import Path
 
-from webui import staging
+from webui import diffapply, staging
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCES = REPO / 'dm/ios/Sources'
@@ -29,7 +29,15 @@ SWIFT_ONLY = {
 
 
 def swift_source():
-    return ''.join((SOURCES / name).read_text(encoding='utf-8') for name in SWIFT)
+    sources = []
+    for name in SWIFT:
+        path = SOURCES / name
+        data = path.read_bytes()
+        for patch, target in staging.patch_queue():
+            if target == path.relative_to(REPO).as_posix():
+                data = diffapply.apply_bytes(data, patch.read_bytes(), target)
+        sources.append(data.decode('utf-8'))
+    return ''.join(sources)
 
 
 def swift_literals():
@@ -44,6 +52,7 @@ class LauncherParity(unittest.TestCase):
         missing = []
         for literal in swift_literals():
             key = literal.split('\\(')[0]   # a literal with an interpolation: its fixed beginning
+            key = re.sub(r'\\u\{([0-9A-Fa-f]{4})\}', r'\\u\1', key)
             if len(key) >= 2 and key not in self.objc and literal not in SWIFT_ONLY:
                 missing.append(literal)
         self.assertFalse(missing, 'Strings in upstream\'s Swift launcher that DmLauncher.m lacks (screen text, '
