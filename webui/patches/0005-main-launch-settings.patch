@@ -1,5 +1,5 @@
 diff --git a/dm/ios/Sources/main.m b/dm/ios/Sources/main.m
-index 1afea81..fc5c118 100644
+index d2f85a5..a5d3abb 100644
 --- a/dm/ios/Sources/main.m
 +++ b/dm/ios/Sources/main.m
 @@ -1,6 +1,7 @@
@@ -10,7 +10,7 @@ index 1afea81..fc5c118 100644
  #include <pthread.h>
  #include <signal.h>
  #include <stdio.h>
-@@ -130,6 +131,7 @@ int front_ios_boot_ok(void) { return g_boot_ok; }
+@@ -150,6 +151,7 @@ int front_ios_boot_ok(void) { return g_boot_ok; }
  @interface App : UIResponder <UIApplicationDelegate>
  @end
  @implementation App
@@ -18,7 +18,7 @@ index 1afea81..fc5c118 100644
  - (UISceneConfiguration *)application:(UIApplication *)a configurationForConnectingSceneSession:(UISceneSession *)s options:(UISceneConnectionOptions *)o {
      return [[UISceneConfiguration alloc] initWithName:@"Default" sessionRole:s.role];
  }
-@@ -142,11 +144,14 @@ int front_ios_boot_ok(void) { return g_boot_ok; }
+@@ -162,11 +164,14 @@ int front_ios_boot_ok(void) { return g_boot_ok; }
  @implementation SceneDelegate
  - (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)o {
      self.window = [[UIWindow alloc] initWithWindowScene:(UIWindowScene *)scene];

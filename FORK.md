@@ -42,7 +42,7 @@ and `UILaunchScreen`). Everything else is a patch or an overlay.
 The optional **Separate IPA and RomFS** iOS build is off by default. When
 selected, the IPA leaves out `romfs/` and the task also produces a
 `<title>.romfs.zip` (top-level `romfs/`) with `webui/build/romfs_archive.py`;
-the Windows builder and patches 0006/0007 carry the hooks. The app reads
+the Windows builder and patch 0007 carries the hook. The app reads
 `Documents/romfs` with no app-side change. macOS `.app.zip` stays self-contained.
 
 ## Upstream sync

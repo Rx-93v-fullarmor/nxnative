@@ -41,15 +41,14 @@ launch-defaults block and the separate-RomFS block. The rest of the patch is
 rebased onto upstream's newer `build_ipa_from_nsp.py` (derived profiles,
 `--prepare-xcode`, `--language`, `--show-fps`, `--progress json`).
 
-## Separate RomFS hooks (0006/0007)
+## Separate RomFS hook (0007)
 
-Patches 0006 (`dm/ios/tools/build_ipa.sh`) and 0007
-(`scripts/build_ipa_from_nsp.py`) also carry the optional `--separate-romfs`
-hooks. Patch 0006 skips the `MAPS` RomFS entry when
-`NX_SEPARATE_ROMFS=1`; patch 0007 adds the flag, sets that environment value,
-and creates the separate archive with `webui/build/romfs_archive.py`. The
-archive layout is a top-level `romfs/`, or one `romfs.img` when the extraction is upstream's
-RomFS image; both are created by the upstream `pack_ipa.py`.
+Upstream has `--romfs separate` (`DM_COPY_ROMFS=NO`, an identity file
+`romfs.id`, `scripts/push_romfs.sh`). Patch 0007 keeps the WebUI's
+`--separate-romfs` flag: it selects that mode and then writes the RomFS image
+(or folder) to `<ipa>.romfs.zip` with `webui/build/romfs_archive.py`, as a
+top-level `romfs.img` or `romfs/`, created by the upstream `pack_ipa.py`. Patch
+0006 only adds the launch-defaults copy to `build_ipa.sh`.
 
 ## Do not regenerate
 
@@ -71,3 +70,9 @@ is renumbered 0001-0007. The ObjC launch settings stay (Windows cross-builds
 cannot compile the SwiftUI launcher) and map their upscaling row to
 `DM_PRESENT_UPSCALE`; the output-height and interpolation rows no longer have
 an effect.
+
+## 2026-10-28 sync (upstream d0b7c84)
+
+Upstream added `--romfs separate` (#493, #478). The fork's own
+`NX_SEPARATE_ROMFS` hook in `build_ipa.sh` was removed; patch 0007 reuses
+upstream's mode.

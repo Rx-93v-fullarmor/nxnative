@@ -44,7 +44,7 @@ class StagingTests(unittest.TestCase):
             self.assertIn('@NXEVENT', (tree / 'scripts/build_ipa_from_nsp.py').read_text(encoding='utf-8'))
             self.assertIn('--separate-romfs',
                           (tree / 'scripts/build_ipa_from_nsp.py').read_text(encoding='utf-8'))
-            self.assertIn('NX_SEPARATE_ROMFS',
+            self.assertIn('NX_LAUNCH_DEFAULTS',
                           (tree / 'dm/ios/tools/build_ipa.sh').read_text(encoding='utf-8'))
             import webui.build.romfs_archive  # staged helper is importable
             self.assertEqual(tree, staging.ensure(REPO, root))

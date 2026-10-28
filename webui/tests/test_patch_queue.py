@@ -11,7 +11,7 @@ MARKERS = {
     '0003-hle-count-targetconditionals.patch': ['TargetConditionals'],
     '0004-nx-extract-catalog.patch': ['--catalog'],
     '0005-main-launch-settings.patch': ['DmLaunchSettings.h'],
-    '0006-build-ipa-launch-defaults.patch': ['NX_LAUNCH_DEFAULTS', 'NX_SEPARATE_ROMFS'],
+    '0006-build-ipa-launch-defaults.patch': ['NX_LAUNCH_DEFAULTS'],
     '0007-build-ipa-from-nsp-webui.patch': ['@NXEVENT', '--separate-romfs', 'RomFS archive'],
 }
 
