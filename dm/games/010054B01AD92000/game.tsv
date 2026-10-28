@@ -1,4 +1,9 @@
-# Game profile of Unicorn Overlord, Asian release (Korean, Chinese), base game v0 + update 1.05 = v262144, SDK 16.2.4: the western profile 010069401ADB8000 with this release's title ID and main build; its note explains the keys
+# Game profile of Unicorn Overlord, Asian release (Korean, Chinese), base game v0 + update 1.05 = v262144, SDK 16.2.4: based on the western profile 010069401ADB8000, with this release's title ID and main build; its note explains the keys
+# Format: see dm/games/README.md
+# Vanillaware's own engine (as 13 Sentinels: Aegis Rim), SDK 16.2.4, NVN; all data is in 7 CRI CPK archives (Unicorn.CPK, UnicornPatch.CPK and one per language), audio is CRI ADX2 with Opus streams
+#   (nn::codec's hardware multi-stream decoder, replaced by the SDK's software one in hle_codec.c).
+# The shaders are not in RomFS: 2188 GLSLC compiler outputs (magic 0x19866891) are compiled into main's read-only segment (1725 distinct shaders, read by shader_split.py glslc_shaders)
+# The two DLC (indices 1 and 2) are licences only: their RomFS holds just the SDK's placeholder file
 
 # ---- Identity ----
 title_id	010054B01AD92000

@@ -43,7 +43,7 @@ def main():
     tools = root / 'chain/gfx/tools'
     tools.mkdir(parents=True, exist_ok=True)
     original = repo / 'dm/gfx/tools'
-    for p in original.glob('dmsh_*.py'):
+    for p in original.glob('*.py'):
         shutil.copyfile(p, tools / p.name)
     for folder in ('dmsh_xlate',):
         shutil.copytree(original / folder, tools / folder, dirs_exist_ok=True)
@@ -135,6 +135,19 @@ def windows_replace(source, destination):
     subprocess.run([sys.executable, str(cp), '--update-lock'], env=env, check=True)
     subprocess.run([sys.executable, str(cp), '--check-tools'], env=env, check=True)
     subprocess.run([sys.executable, str(cp), '--header'], env=env, check=True)
+    # dmsh_chain.py 将 header 写到 chain/gfx/nvn/，构建流程期望它在 profile/<game_id>/
+    # 由于任务可能复用历史 profile 路径，复制到所有任务的 profile 目录
+    header_src = root / 'chain/gfx/nvn/dmsh_chain.h'
+    if header_src.exists():
+        tasks_dir = root.parents[3]  # root = ...\tasks\<id>\inputs\...\windows_shaders
+        for profile_dir in tasks_dir.glob('*/inputs/*/profile'):
+            for game_dir in profile_dir.iterdir():
+                if game_dir.is_dir():
+                    shutil.copyfile(header_src, game_dir / 'dmsh_chain.h')
+        # 同步更新仓库中的 canonical header，确保 host_compile 使用相同的链版本
+        canonical_header = repo / 'dm/gfx/nvn/dmsh_chain.h'
+        canonical_header.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(header_src, canonical_header)
     (root / 'windows_tools.json').write_text(identity + '\n', encoding='utf-8')
     if not a.prepare_only:
         subprocess.run([sys.executable, str(tools / 'dmsh_build.py'), str(a.packages.resolve()), str(root / 'mac'), *a.keys], env=env, check=True)
