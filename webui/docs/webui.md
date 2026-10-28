@@ -16,7 +16,7 @@ You may still override the location with `--data-dir` or `NX_DATA_DIR`, includin
 
 Open the URL printed by the launcher. The token is exchanged for a local session cookie and removed from the address bar. The service rejects foreign origins and non-loopback hosts. It is a local, single-user tool; do not expose it through a proxy or a public interface. Only one process may use a given data folder.
 
-`start-webui.bat`, `start-webui.sh` and `start-webui.command` are launch shortcuts (the internal launchers are under `webui/launchers/`). Set `NX_TOOLS_DIR` to use an external prepared tools folder. Windows always uses the project-local runtime; the Mac launcher uses the optional `runtime/bin/python3` in that tools folder or system Python. In Spyder, edit the settings at the top of `start_webui.py` and press F5.
+`start-webui.bat`, `start-webui.sh` and `start-webui.command` are launch shortcuts (the internal launchers are under `webui/launchers/`). Set `NX_TOOLS_DIR` to use an external prepared tools folder. Windows always uses the project-local runtime; the Mac launcher uses the optional `runtime/bin/python3` in that tools folder or system Python. In Spyder, open `webui/launchers/start_webui.py`, edit the settings at the top and press F5.
 
 ## Tools and platforms
 

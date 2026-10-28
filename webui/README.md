@@ -1,7 +1,82 @@
-# WebUI package
+# WebUI: startup and usage
 
 The WebUI is the fork-owned local build studio. Upstream nxnative code stays at
 its original paths; everything here is safe to change without touching upstream.
+
+## Start the WebUI
+
+Clone or download this fork, then open its repository folder:
+
+```sh
+git clone https://github.com/xbunax/nxnative.git
+cd nxnative
+```
+
+| Host | Start from the repository root | Requirements |
+|---|---|---|
+| Windows | Double-click `start-webui.bat`, or run `.\start-webui.bat` in PowerShell | The launcher downloads a local Python runtime and installs missing Python dependencies on first use. |
+| macOS | Run `./start-webui.sh`, or double-click `start-webui.command` | Apple Silicon, Python 3.11 or newer, and a configured full Xcode installation for builds. |
+
+The browser opens automatically. Keep the launcher terminal open while using the
+WebUI. If the browser does not open, use the complete **Open in your browser** URL
+printed by the launcher, including its session token. The default address is
+`127.0.0.1:8765`; each launch creates a new browser session.
+
+First-time setup needs network access. Windows startup errors are recorded in
+`.webui-data/startup.log`. Existing compatible tools and Python environments are
+reused on later launches. This is a local, single-user service.
+
+For an existing Python installation, the direct entry point is
+`python3 webui/launchers/start_webui.py`. It accepts `--data-dir`, `--tools`,
+`--port` and `--no-browser`; the root launch shortcuts forward these options.
+For Spyder, open [launchers/start_webui.py](launchers/start_webui.py), adjust the
+settings at the top if needed, and run it with F5.
+
+## Build or inspect a game
+
+1. Open **Environment & tools**, choose a tools directory and click
+   **Install all supported missing dependencies**. Finish any manual entries,
+   then click **Recheck**. Windows builds need the iPhoneOS SDK and Apple's
+   Windows Metal Developer Tools; macOS builds need full Xcode and its Metal
+   compiler. Detailed setup: [Windows](docs/webui.md#windows-installation) and
+   [macOS](docs/webui.md#macos-installation).
+2. Upload your game packages and `prod.keys`, or import their existing absolute
+   paths. Include the base game and any required updates or DLC. Saved uploads
+   can be selected again from the upload history.
+3. Choose **Build an app**, **Convert XCI/NSZ to NSP**, or **Inspect game metadata**.
+   For builds, select the target platform and default game language. Windows
+   supports unsigned iOS builds for the offline NVN subset; macOS supports iOS
+   and Mac app output. See the [platform limits](docs/webui.md#tools-and-platforms).
+4. For iOS, choose the launcher. Windows uses ObjC; Mac builds can use ObjC or
+   SwiftUI. Optionally enable **Separate IPA and RomFS** to produce a smaller IPA
+   and a separate `.romfs.zip`; extract its top-level `romfs` folder into the
+   installed app's `Documents` directory.
+5. Start the task and follow its progress and **Log**. Download the IPA or Mac
+   app ZIP from the completed task. IPAs are unsigned: sideload them using your
+   preferred tool. A failed target keeps any successful output available.
+
+The browser's header language selector changes WebUI text. Inside either iOS
+launcher, **Interface language** beside Play switches English / Simplified Chinese
+and remembers the choice. These interface preferences are separate from the
+**Game language** setting. Rebuild the IPA to include launcher UI changes.
+
+## Logs, retry and cleanup
+
+Each task has its own ID, timestamp and log. After updating the source, create a
+new build task; an old task's log continues to show its original failure. Retry
+needs the original inputs and keys; import keys again if the task requests them.
+Changes to the WebUI server itself require restarting the launcher process;
+refreshing the browser alone does not reload Python code.
+
+Data defaults to `.webui-data/`, including uploads, task inputs, outputs, tools
+and caches. Use `--data-dir` or `--tools` to choose another directory when needed.
+**Clear cache** is available when the queue is idle and removes staged sources,
+the shader cache and task inputs while keeping completed task outputs and logs.
+Deleting a task removes its entire task directory, including its outputs; download
+anything you want to keep first.
+
+For SDK discovery, offline tools, installation details and troubleshooting, see
+the [full WebUI guide](docs/webui.md).
 
 ## Layout
 

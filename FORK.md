@@ -24,6 +24,16 @@ beside it and the upstream-sync workflow under `.github/`:
 Windows: double-click `start-webui.bat` (or `webui\launchers\start_webui.bat`).
 macOS: run `./start-webui.sh` in a terminal (or double-click `start-webui.command`; the internal launcher is `webui/launchers/start_webui.sh`).
 
+The browser opens automatically; otherwise, use the complete session URL printed
+in the terminal. Keep that terminal open. In **Environment & tools**, install
+missing supported dependencies and select **Recheck**, then upload/import the
+game packages and `prod.keys`, choose the output and start a build. Download the
+result from the task when it finishes.
+
+Step-by-step startup, platform requirements, launcher languages, retry and cleanup:
+[WebUI README](webui/README.md). Detailed installation and SDK discovery:
+[WebUI guide](webui/docs/webui.md).
+
 The launchers keep their data in the repository's `.webui-data/` directory. That
 directory is local-only and is added to `.git/info/exclude`; the upstream
 `.gitignore` is not modified.
@@ -32,7 +42,7 @@ directory is local-only and is added to `.git/info/exclude`; the upstream
 
 A build never writes into the upstream working tree. `webui/staging.py` copies
 the repository into `.webui-data/stage/<key>/tree`, applies the overlays and
-the five patches under `webui/patches/`, and runs the build from that copy. The
+the hook patches under `webui/patches/`, and runs the build from that copy. The
 stage is reused until a source file or patch changes.
 
 The only intentional direct edit to an upstream file is `dm/ios/project.yml`,
