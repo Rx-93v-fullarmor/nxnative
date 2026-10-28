@@ -212,16 +212,17 @@ def execute(folder):
     if not needed <= versions:
         raise ValueError('Missing required versions: ' + ', '.join(sorted(needed - versions)))
     settings = task['settings']
+    launcher = task.get('launcher', 'objc')
+    if launcher not in staging.LAUNCHERS:
+        raise ValueError('Unknown launcher.')
+    if launcher == 'swiftui' and platform.system() == 'Windows':
+        raise ValueError('The upstream SwiftUI launcher cannot be built on Windows; choose the ObjC launcher.')
+    # Both launchers show upstream's settings list (dm/launcher.json); the WebUI sets only the build's default game language
     language = settings.get('DM_LANG', 'system')
-    # the build's language default (DM_LANG on the launcher's Game language row); the other launch settings are
-    # chosen in the app's own launcher (upstream's Launcher.swift). The Windows cross-build has no launcher, so
-    # its language goes through the bundled env file
-    envfile = folder / 'launch.env'
-    if language != 'system': envfile.write_text(f'DM_LANG={language}\n', encoding='utf-8')
     env = dict(os.environ, NX_PROGRESS='1')
     emit(folder, 'stage', name='Preparing staged sources')
     stage_root = Path(os.environ.get('NX_STAGE_ROOT') or (folder.parent.parent / 'stage'))
-    stage = staging.ensure(REPO, stage_root)
+    stage = staging.ensure(REPO, stage_root, launcher=launcher)
     env.update(NX_STAGE_TREE=str(stage), NX_STAGE_KEY=stage.parent.name)
     env['PYTHONPATH'] = os.pathsep.join([str(stage), env.get('PYTHONPATH', '')])
     published = set()
@@ -250,7 +251,7 @@ def execute(folder):
             command = [sys.executable, stage / 'webui/build/windows/build_ipa_windows.py', inputs,
                        '--game', str(g.dir) if provisional_build else title,
                        '--keys', keys, '--tools', toolroot, '--out', output]
-            if language != 'system': command += ['--env-file', envfile]
+            if language != 'system': command += ['--language', language]
             for option in ('sdk', 'metal'):
                 if config.get(option): command += ['--' + option, config[option]]
             if separate_target: command += ['--separate-romfs']

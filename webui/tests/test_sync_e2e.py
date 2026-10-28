@@ -81,6 +81,7 @@ class SyncEndToEnd(unittest.TestCase):
                         ignore=shutil.ignore_patterns('__pycache__'), dirs_exist_ok=True)
         for name in ('__init__.py', 'diffapply.py', 'staging.py', 'repo.py'):
             shutil.copy2(REPO / 'webui' / name, self.fork / 'webui' / name)
+        shutil.copytree(REPO / 'webui' / 'overlays', self.fork / 'webui' / 'overlays', dirs_exist_ok=True)
         self.write(self.fork, 'webui/tests/__init__.py', '')
         self.write(self.fork, 'webui/tests/test_trivial.py', TRIVIAL_TEST)
         self.write(self.fork, 'webui/patches/0001-hook.patch', PATCH)

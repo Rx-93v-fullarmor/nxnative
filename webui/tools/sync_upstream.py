@@ -30,8 +30,11 @@ FORK_OWNED = ('.github/workflows/upstream-sync.yml', 'webui/', 'FORK.md',
 MANUAL_REVIEW = ('dm/ios/project.yml',)
 SENSITIVE = set(staging.OVERLAY_TARGETS) | {target for _, target in staging.patch_queue()} | {
     'dm/games/profile_guess.py', 'scripts/build_ipa_from_nsp.py',
-    # the launcher hand-off (dm_show_launcher) that webui/build/windows/launcher_stub.m stands in for on Windows
+    # the launcher hand-off (dm_show_launcher)
     'dm/ios/Sources/front_ios.m', 'dm/ios/Sources/main.m',
+    # the Swift launcher that webui/overlays/dm/ios/Sources/DmLauncher.m ports (test_launcher_parity.py)
+    'dm/ios/Sources/Launcher.swift', 'dm/ios/Sources/LauncherRow.swift', 'dm/ios/Sources/LauncherSettings.swift',
+    'dm/games/settings.py', 'docs/launcher.schema.json',
 }
 BOT_NAME = 'github-actions[bot]'
 BOT_EMAIL = '41898282+github-actions[bot]@users.noreply.github.com'

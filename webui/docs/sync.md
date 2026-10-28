@@ -19,11 +19,14 @@ fork block that merges with the `union` driver (the fork's other rules are in
 WebUI's `--separate-romfs` onto upstream's `--romfs separate` and archives the
 image; keep it when porting. `webui/provisional.py` mirrors upstream
 `scripts/build_ipa_from_nsp.py`'s survey and provisional-profile format for the
-WebUI; recheck it when that upstream code changes. The launcher is upstream's SwiftUI
-`Launcher.swift` on iOS and Mac; the fork no longer has its own. The Windows
-cross-build cannot compile Swift, so it links `webui/build/windows/launcher_stub.m`,
-whose `dm_show_launcher` returns false (the game starts at once); if upstream
-changes `dm_show_launcher` in `front_ios.m`, the sync reports it as a sensitive path.
+WebUI; recheck it when that upstream code changes. The iOS launcher exists twice and is
+the same launcher in two languages: upstream's SwiftUI `Launcher.swift`,
+`LauncherRow.swift`, `LauncherSettings.swift`, and the fork's ObjC port
+`webui/overlays/dm/ios/Sources/DmLauncher.m` (an `objc` stage removes the Swift files and adds
+the port; the Windows cross-build cannot compile Swift, so it always uses the port). Both read
+`dm/launcher.json`. When a sync changes the Swift files the sync warns, and
+`webui/tests/test_launcher_parity.py` fails until `DmLauncher.m` is changed with them. Mac apps use
+upstream's own `dm/mac/Launcher.swift` in either case.
 
 The 2026-10-23 sync force-pushed `main` to a vendor drop of upstream
 `eab15b5`; that history is preserved on

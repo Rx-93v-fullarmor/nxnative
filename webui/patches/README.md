@@ -76,12 +76,12 @@ Upstream added `--romfs separate` (#493, #478). The fork's own
 `NX_SEPARATE_ROMFS` hook in `build_ipa.sh` was removed; patch 0007 reuses
 upstream's mode.
 
-## 2026-10-28: upstream's launcher (queue is now 0001-0005)
+## 2026-10-28: one launcher in two languages (queue is now 0001-0005)
 
-The fork's ObjC launch settings were removed: patches for `main.m` and the
-`build_ipa.sh` launch-defaults copy, the `launch-defaults.json` plumbing and all
-overlays (`DmLaunchSettings`, `DmPerfHud`, `dm_launch_options.h`,
-`dm_bundle_defaults.h`). The iOS and Mac apps use upstream's `Launcher.swift`.
-The WebUI only sets the game language (`--language`; the Windows cross-build,
-which has no launcher, gets it through the env file). The Performance HUD toggle
-is gone; upstream has `DM_SHOW_FPS` / `DM_METAL_HUD`. The former patch 0007 is now 0005.
+The fork's own launch settings (patches for `main.m` and the `build_ipa.sh` launch-defaults copy, the
+`launch-defaults.json` plumbing, `DmLaunchSettings`, `DmPerfHud`, `dm_launch_options.h`,
+`dm_bundle_defaults.h`) were replaced by `overlays/dm/ios/Sources/DmLauncher.m`, an ObjC port of upstream's
+Swift launcher. An `objc` stage removes `Launcher.swift`, `LauncherRow.swift` and `LauncherSettings.swift`
+(`staging.OBJC_REMOVED`) and adds the port; a `swiftui` stage is upstream's tree. `main.m` is not patched
+(`front_ios.m` calls `dm_show_launcher`). The WebUI sets only the game language (`--language`); the other
+settings are upstream's own rows. The former patch 0007 is now 0005.

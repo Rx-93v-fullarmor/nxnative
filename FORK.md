@@ -12,7 +12,7 @@ beside it and the upstream-sync workflow under `.github/`:
 |---|---|
 | `webui/` | Local build studio (FastAPI), task queue, launchers, tool preparation |
 | `webui/build/windows/` | Windows iOS cross-compile, shader build and IPA packer |
-| `webui/overlays/dm/` | Fork-only source files placed into the staged `dm/` tree (none at present) |
+| `webui/overlays/dm/` | Fork-only source files placed into the staged `dm/` tree (the ObjC port of the iOS launcher) |
 | `webui/patches/` | Upstream hook patches applied only to the build staging tree |
 | `webui/launchers/` | Canonical launchers (thin wrappers are at the repository root) |
 | `webui/tools/` | Staging, patch queue, sync checks and helper CLIs |
@@ -31,7 +31,7 @@ directory is local-only and is added to `.git/info/exclude`; the upstream
 ## Builds use a stage
 
 A build never writes into the upstream working tree. `webui/staging.py` copies
-the repository into `.webui-data/stage/<key>/tree`, applies the overlays (none at present) and
+the repository into `.webui-data/stage/<key>/tree`, applies the overlays and
 the five patches under `webui/patches/`, and runs the build from that copy. The
 stage is reused until a source file or patch changes.
 

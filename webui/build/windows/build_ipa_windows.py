@@ -39,6 +39,7 @@ def main():
     ap.add_argument('--jobs', type=int, default=JOBS)
     ap.add_argument('--sdk', type=Path, help='User-supplied iPhoneOS SDK')
     ap.add_argument('--env-file', type=Path)
+    ap.add_argument('--language', help='the launcher\'s default game language')
     ap.add_argument('--separate-romfs', action='store_true', help='Leave the RomFS out of the IPA and write <ipa>.romfs.zip')
     ap.add_argument('--provisional', action='store_true', help='Build from a provisional profile (build IDs and shader evidence are generated from this extraction)')
     ap.add_argument('--font', type=Path, default=Path('C:/Windows/Fonts/msyh.ttc'))
@@ -246,6 +247,9 @@ def main():
     if aoc.exists():
         command += ['--aoc', aoc]
     if a.env_file: command += ['--env-file', a.env_file.resolve()]
+    if a.language: command += ['--language', a.language]
+    if (extracted / 'control.nacp').exists():
+        command += ['--nacp', extracted / 'control.nacp']
     if a.separate_romfs: command += ['--omit-romfs']
     if (extracted / 'icon.jpg').exists():
         command += ['--icon', extracted / 'icon.jpg']

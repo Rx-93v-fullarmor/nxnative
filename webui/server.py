@@ -255,12 +255,17 @@ def create_app(root, token=None, config=None):
             raise ValueError('Separate RomFS is only available for application builds')
         if separate_romfs and 'ios' not in targets:
             raise ValueError('Separate RomFS requires an iOS target')
+        launcher = value.get('launcher', 'objc')
+        if launcher not in ('objc', 'swiftui'):
+            raise ValueError('Invalid launcher selection')
+        if launcher == 'swiftui' and platform.system() == 'Windows':
+            raise ValueError('The upstream SwiftUI launcher is not available on Windows')
         settings = value.get('settings', {})
         if not isinstance(settings, dict) or any(k not in OPTIONS or v not in OPTIONS[k] for k, v in settings.items()):
             raise ValueError('Invalid launch settings')
         settings = {k: settings.get(k, choices[0]) for k, choices in OPTIONS.items()}
         return {'id': jobs.create(dict(kind=kind, files=files, keys=keys['path'], game=value.get('game', ''),
-            targets=list(dict.fromkeys(targets)), settings=settings, separate_romfs=separate_romfs,
+            targets=list(dict.fromkeys(targets)), settings=settings, launcher=launcher, separate_romfs=separate_romfs,
             retain_keys=bool(value.get('retain_keys', False))))}
 
     @app.get('/api/tasks/{identity}/events')
