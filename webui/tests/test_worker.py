@@ -32,14 +32,14 @@ class WorkerSeparateRomfsTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def task(self, targets=('ios',), separate=False):
+    def task(self, targets=('ios',), separate=False, settings=None):
         value = dict(kind='build', files=[str(self.source)], keys=str(self.keys), game=TITLE,
-                     targets=list(targets), settings={}, separate_romfs=separate)
+                     targets=list(targets), settings=settings or {}, separate_romfs=separate)
         (self.folder / 'task.json').write_text(json.dumps(value), encoding='utf-8')
         return value
 
-    def run_build(self, targets=('ios',), separate=False, system='Windows', output=None):
-        task = self.task(targets, separate)
+    def run_build(self, targets=('ios',), separate=False, system='Windows', output=None, settings=None):
+        task = self.task(targets, separate, settings)
         commands = []
         marker = worker.game.load(TITLE).get('romfs_marker')
 
@@ -104,12 +104,28 @@ class WorkerSeparateRomfsTests(unittest.TestCase):
         self.assertNotIn('--separate-romfs', builds[0])
         self.assertIn('--separate-romfs', builds[1])
 
-    def test_launch_choices_become_upstream_switches(self):
-        pairs = worker.build_env_pairs({'DM_LANG': 'system', 'DM_OPMODE': '1', 'DM_METALFX_SPATIAL': '1',
-                                        'DM_METALFX_OUTPUT_HEIGHT': 'auto'})
-        self.assertEqual(pairs, [('DM_OPMODE', '1'), ('DM_PRESENT_UPSCALE', 'metalfx')])
-        self.assertEqual(worker.build_env_pairs({'DM_LANG': 'ja', 'DM_METALFX_SPATIAL': '0'}),
-                         [('DM_LANG', 'ja'), ('DM_PRESENT_UPSCALE', 'off')])
+    def test_language_reaches_the_build_and_no_launch_defaults_are_written(self):
+        _, commands = self.run_build(system='Darwin', settings={'DM_LANG': 'ja'})
+        build = commands[0]
+        self.assertEqual(build[build.index('--language') + 1], 'ja')
+        self.assertNotIn('--env-file', build)
+        self.assertNotIn('--launch-defaults', build)
+        self.assertFalse((self.folder / 'launch-defaults.json').exists())
+
+    def test_windows_has_no_launcher_so_language_uses_the_env_file(self):
+        _, commands = self.run_build(system='Windows', settings={'DM_LANG': 'zh-Hans'})
+        build = commands[0]
+        envfile = Path(build[build.index('--env-file') + 1])
+        self.assertEqual(envfile.read_text(encoding='utf-8'), 'DM_LANG=zh-Hans\n')
+        self.assertNotIn('--language', build)
+        self.assertNotIn('--launch-defaults', build)
+
+    def test_system_language_adds_no_language_option(self):
+        for system in ('Darwin', 'Windows'):
+            _, commands = self.run_build(system=system, settings={'DM_LANG': 'system'})
+            self.assertNotIn('--language', commands[0])
+            self.assertNotIn('--env-file', commands[0])
+            self.setUp()
 
     def test_output_folder_receives_finished_artifacts(self):
         delivered = self.root / 'delivered'

@@ -1,10 +1,8 @@
 # <patch file> <repository-relative target>
-# Base: d0b7c846ba6cf5107f5376342418b9af954dacc7
-# Fork ref: edf56d31081c9a7b3afb690d452b1cd5ddab89a4
+# Base: c9f2dd7961271b9c51a0c285190fd7d6c11b5178
+# Fork ref: 1fadbeccc11e5e336984b7e9e631c0bfa900422a
 0001-shader-split-posix-paths.patch dm/gfx/tools/shader_split.py
 0002-gen-embed-posix-paths-sections.patch dm/ios/tools/gen_embed.py
 0003-hle-count-targetconditionals.patch dm/host/hle_count.c
 0004-nx-extract-catalog.patch dm/tools/nx_extract/Program.cs
-0005-main-launch-settings.patch dm/ios/Sources/main.m
-0006-build-ipa-launch-defaults.patch dm/ios/tools/build_ipa.sh
-0007-build-ipa-from-nsp-webui.patch scripts/build_ipa_from_nsp.py
+0005-build-ipa-from-nsp-webui.patch scripts/build_ipa_from_nsp.py

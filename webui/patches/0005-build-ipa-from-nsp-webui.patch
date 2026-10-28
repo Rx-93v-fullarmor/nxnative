@@ -1,5 +1,5 @@
 diff --git a/scripts/build_ipa_from_nsp.py b/scripts/build_ipa_from_nsp.py
-index cd06379..25f5dff 100755
+index cd06379..e31343f 100755
 --- a/scripts/build_ipa_from_nsp.py
 +++ b/scripts/build_ipa_from_nsp.py
 @@ -125,6 +125,9 @@ class Progress:
@@ -48,20 +48,7 @@ index cd06379..25f5dff 100755
      if romfs_mode not in ('bundle', 'separate'): raise BuildError(f'ROMFS / --romfs must be bundle or separate: {romfs_mode}')
      if romfs_mode == 'separate' and mac: raise BuildError(f'--romfs separate keeps the game files off the iPhone app: it cannot be combined with --platform {platform}, which runs from the extracted files')
      if romfs_mode == 'separate' and not keep: raise BuildError('--romfs separate requires --keep-extracted: the image must remain available for the one-time transfer to the phone')
-@@ -2203,6 +2212,12 @@ def main(args=None):
-     # how the shaders are got follows from the packed version's files (profile_guess.py shader_sources): the graphics API, and the shaders made only at run time
-     src = pg.build_sources(game / 'ExeFS', rfs.source(game), g.words('modules'))
-     gfx = src['graphics'][0]   # nvn, vulkan (Hades: the host's Vulkan layer, SPIR-V shaders) or gl (Digimon Story Cyber Sleuth: the host's GL layer, GLSL sources)
-+    if env.get('NX_LAUNCH_DEFAULTS'):
-+        launch = json.loads(Path(env['NX_LAUNCH_DEFAULTS']).read_text(encoding='utf-8'))
-+        launch['NX_GRAPHICS'] = gfx
-+        launch_path = work / 'launch-defaults.json'
-+        launch_path.write_text(json.dumps(launch), encoding='utf-8')
-+        env['NX_LAUNCH_DEFAULTS'] = str(launch_path)
-     glslc = gfx == 'nvn' and src['glslc_capture'][0]   # shaders the game compiles at run time, captured in the Mac host (capture_glslc)
-     vkcap = gfx == 'vulkan' and src['vk_capture'][0]   # SPIR-V shaders the game generates at run time, captured in the Mac host (capture_shaders)
-     glcap = gfx == 'gl' and src['gl_capture'][0]   # GLSL the game puts together at run time (LÖVE), captured in the Mac host (capture_shaders)
-@@ -2333,6 +2348,19 @@ def main(args=None):
+@@ -2333,6 +2342,19 @@ def main(args=None):
      run(['bash', repo / 'dm/ios/tools/build_ipa.sh', out_ipa], logs / 'build_ipa.log', env=ipa_env, on_line=watch.line)
      if not out_ipa.is_file(): raise BuildError(f'no IPA at {out_ipa}')
      PROG.end(f'{out_ipa.name}, {amount(out_ipa.stat().st_size, "B")}')

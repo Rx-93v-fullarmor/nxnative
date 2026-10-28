@@ -39,13 +39,11 @@ class StagingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             tree = staging.ensure(REPO, root, force=True)
-            self.assertTrue((tree / 'dm/ios/Sources/DmLaunchSettings.m').is_file())
-            self.assertTrue((tree / 'dm/ios/Sources/DmPerfHud.m').is_file())
             self.assertIn('@NXEVENT', (tree / 'scripts/build_ipa_from_nsp.py').read_text(encoding='utf-8'))
             self.assertIn('--separate-romfs',
                           (tree / 'scripts/build_ipa_from_nsp.py').read_text(encoding='utf-8'))
-            self.assertIn('NX_LAUNCH_DEFAULTS',
-                          (tree / 'dm/ios/tools/build_ipa.sh').read_text(encoding='utf-8'))
+            self.assertEqual(digest(tree / 'dm/ios/Sources/main.m'), digest(REPO / 'dm/ios/Sources/main.m'))   # upstream's launcher: main.m is not patched
+            self.assertFalse((tree / 'dm/ios/Sources/DmLaunchSettings.m').exists())
             import webui.build.romfs_archive  # staged helper is importable
             self.assertEqual(tree, staging.ensure(REPO, root))
             staging.verify(tree)

@@ -136,9 +136,7 @@ function capability() {
   $('mac-option').classList.toggle('unavailable', !macAvailable);
   $('mac-option').title = macAvailable ? '' : t('macOS packaging requires a Mac.');
   if (!macAvailable) $('mac').checked = false;
-  $('capability').textContent = t(profile?.reason || (profile?.graphics === 'vulkan' ? 'Vulkan game: MetalFX spatial upscaling is unavailable.' : 'No profile selected: an unregistered title is surveyed and built with a provisional profile; the app may not boot.'));
-  $('spatial').disabled = profile?.graphics === 'vulkan';
-  if ($('spatial').disabled) $('spatial').value = '0';
+  $('capability').textContent = t(profile?.reason || 'No profile selected: an unregistered title is surveyed and built with a provisional profile; the app may not boot.');
   const ios = $('ios').checked, building = $('kind').value === 'build';
   $('separate-romfs').disabled = !building || !ios;
   if ($('separate-romfs').disabled) $('separate-romfs').checked = false;
@@ -275,7 +273,7 @@ $('start').onclick = action(async () => {
   const result = await api('tasks',{method:'POST',body:JSON.stringify({kind:$('kind').value,game:$('game').value,
     files:inputs.filter(x=>!x.name.toLowerCase().endsWith('.keys')).map(x=>x.id),keys:keys[0].id,targets:targets.length?targets:['ios'],retain_keys:$('retain').checked,
     separate_romfs:$('kind').value==='build'&&targets.includes('ios')&&$('separate-romfs').checked,
-    settings:{DM_LANG:$('language').value,DM_OPMODE:$('mode').value,DM_METALFX_SPATIAL:$('spatial').value,DM_METALFX_OUTPUT_HEIGHT:$('resolution').value}})});
+    settings:{DM_LANG:$('language').value}})});
   message('Task queued: '+result.id.slice(0,8)); await refresh();
 });
 $('tasks').onclick = action(async e => {

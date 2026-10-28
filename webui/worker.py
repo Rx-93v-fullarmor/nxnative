@@ -40,19 +40,6 @@ def local_link(source, destination):
         shutil.copy2(source, destination)
 
 
-def build_env_pairs(settings):
-    """The WebUI's launch choices as upstream environment switches (the build's env file)."""
-    pairs = []
-    for key, value in settings.items():
-        if key == 'DM_METALFX_SPATIAL':
-            pairs.append(('DM_PRESENT_UPSCALE', 'metalfx' if value == '1' else 'off'))
-        elif key == 'DM_LANG':
-            if value != 'system': pairs.append((key, value))
-        elif key == 'DM_OPMODE':
-            pairs.append((key, value))
-    return pairs
-
-
 def zip_app(folder, app, output, env):
     """Archive the Mac app folder as <title>.app.zip (ditto keeps symlinks, signatures and attributes)."""
     if not app.is_dir():
@@ -225,13 +212,13 @@ def execute(folder):
     if not needed <= versions:
         raise ValueError('Missing required versions: ' + ', '.join(sorted(needed - versions)))
     settings = task['settings']
-    if graphics == 'vulkan':
-        settings = dict(settings, DM_METALFX_SPATIAL='0')
-    defaults = folder / 'launch-defaults.json'
-    defaults.write_text(json.dumps(dict(settings, NX_WEBUI_RELEASE='1', NX_GRAPHICS=graphics)), encoding='utf-8')
+    language = settings.get('DM_LANG', 'system')
+    # the build's language default (DM_LANG on the launcher's Game language row); the other launch settings are
+    # chosen in the app's own launcher (upstream's Launcher.swift). The Windows cross-build has no launcher, so
+    # its language goes through the bundled env file
     envfile = folder / 'launch.env'
-    envfile.write_text('\n'.join(f'{k}={v}' for k, v in build_env_pairs(settings)) + '\n', encoding='utf-8')
-    env = dict(os.environ, NX_PROGRESS='1', NX_LAUNCH_DEFAULTS=str(defaults))
+    if language != 'system': envfile.write_text(f'DM_LANG={language}\n', encoding='utf-8')
+    env = dict(os.environ, NX_PROGRESS='1')
     emit(folder, 'stage', name='Preparing staged sources')
     stage_root = Path(os.environ.get('NX_STAGE_ROOT') or (folder.parent.parent / 'stage'))
     stage = staging.ensure(REPO, stage_root)
@@ -262,8 +249,8 @@ def execute(folder):
         if platform.system() == 'Windows':
             command = [sys.executable, stage / 'webui/build/windows/build_ipa_windows.py', inputs,
                        '--game', str(g.dir) if provisional_build else title,
-                       '--keys', keys, '--tools', toolroot, '--out', output, '--env-file', envfile,
-                       '--launch-defaults', defaults]
+                       '--keys', keys, '--tools', toolroot, '--out', output]
+            if language != 'system': command += ['--env-file', envfile]
             for option in ('sdk', 'metal'):
                 if config.get(option): command += ['--' + option, config[option]]
             if separate_target: command += ['--separate-romfs']
@@ -273,7 +260,8 @@ def execute(folder):
             built = output.with_suffix('') if target == 'mac' else output
             command = [sys.executable, stage / 'scripts/build_ipa_from_nsp.py', inputs, '--keys', keys,
                        '--platform', 'mac-app' if target == 'mac' else 'ios', '--out', built,
-                       '--env-file', envfile, '--keep-extracted', '--progress', 'off']
+                       '--keep-extracted', '--progress', 'off']
+            if language != 'system': command += ['--language', language]
             if separate_target: command += ['--separate-romfs']
             if provisional_build:
                 command += ['--provisional', '--profile-out', str((folder / 'profile').resolve())]

@@ -77,29 +77,6 @@ class PatchedScripts(unittest.TestCase):
         self.assertEqual(mode(False), 'bundle')
         self.assertEqual(mode(False, 'separate'), 'separate')
 
-    @unittest.skipUnless(shutil.which('bash'), 'bash is required')
-    def test_launch_defaults_are_copied_into_the_app_or_removed(self):
-        lines = [line for line in (self.tree / 'dm/ios/tools/build_ipa.sh').read_text(encoding='utf-8').splitlines()
-                 if line.startswith('if [ -n "${NX_LAUNCH_DEFAULTS:-}" ]')]
-        self.assertEqual(len(lines), 1)
-        with tempfile.TemporaryDirectory() as folder:
-            app = Path(folder) / 'App'
-            app.mkdir()
-            defaults = Path(folder) / 'defaults.json'
-            defaults.write_text('{"DM_LANG": "ja"}', encoding='utf-8')
-
-            def run(value):
-                env = dict(os.environ, APP=str(app))
-                env.pop('NX_LAUNCH_DEFAULTS', None)
-                if value: env['NX_LAUNCH_DEFAULTS'] = str(value)
-                return subprocess.run(['bash', '-c', 'set -eu\ndie() { echo "$*" >&2; exit 9; }\n' + lines[0]],
-                                      env=env, capture_output=True, text=True)
-            self.assertEqual(run(defaults).returncode, 0)
-            self.assertEqual((app / 'launch-defaults.json').read_text(encoding='utf-8'), '{"DM_LANG": "ja"}')
-            self.assertEqual(run(None).returncode, 0)   # a stale file from an earlier build must not ship
-            self.assertFalse((app / 'launch-defaults.json').exists())
-            self.assertEqual(run(Path(folder) / 'missing.json').returncode, 9)
-
 
 if __name__ == '__main__':
     unittest.main()

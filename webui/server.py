@@ -18,9 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from .capabilities import REPO, environment
 from .jobs import Jobs, TERMINAL, read_events, summary, write_json
 
-OPTIONS = {'DM_LANG': ['system', 'zh-Hans', 'zh-Hant', 'en-US', 'ja'],
-           'DM_OPMODE': ['0', '1'], 'DM_METALFX_SPATIAL': ['1', '0'],
-           'DM_METALFX_OUTPUT_HEIGHT': ['auto', '720', '900', '1080', '1440']}
+OPTIONS = {'DM_LANG': ['system', 'zh-Hans', 'zh-Hant', 'en-US', 'ja']}
 
 
 def data_directory(path):
@@ -261,7 +259,6 @@ def create_app(root, token=None, config=None):
         if not isinstance(settings, dict) or any(k not in OPTIONS or v not in OPTIONS[k] for k, v in settings.items()):
             raise ValueError('Invalid launch settings')
         settings = {k: settings.get(k, choices[0]) for k, choices in OPTIONS.items()}
-        settings.update(DM_METALFX_INTERPOLATION='0', DM_DYNAMIC_RESOLUTION='1')
         return {'id': jobs.create(dict(kind=kind, files=files, keys=keys['path'], game=value.get('game', ''),
             targets=list(dict.fromkeys(targets)), settings=settings, separate_romfs=separate_romfs,
             retain_keys=bool(value.get('retain_keys', False))))}

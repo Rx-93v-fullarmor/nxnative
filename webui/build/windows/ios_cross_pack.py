@@ -61,7 +61,6 @@ def main():
         ap.add_argument('--' + name.replace('_', '-'), type=Path, required=True)
     ap.add_argument('--aoc', type=Path)
     ap.add_argument('--env-file', type=Path)
-    ap.add_argument('--launch-defaults', type=Path)
     ap.add_argument('--icon', type=Path)
     ap.add_argument('--prepare-only', action='store_true')
     ap.add_argument('--omit-romfs', action='store_true', help='Leave the RomFS out of the IPA (the separate archive is made by the caller)')
@@ -83,8 +82,6 @@ def main():
     (dm / 'font').mkdir(parents=True, exist_ok=True)
     if a.env_file: shutil.copyfile(a.env_file, dm / 'env.txt')
     else: (dm / 'env.txt').unlink(missing_ok=True)
-    if a.launch_defaults: shutil.copyfile(a.launch_defaults, stage / 'launch-defaults.json')
-    else: (stage / 'launch-defaults.json').unlink(missing_ok=True)
     for pattern in ('*.fixups.tsv', '*.gates.tsv', '*.params.tsv', '*.cuts.tsv', '*.obs.tsv'):
         for source in a.patched.glob(pattern):
             shutil.copyfile(source, dm / source.name)

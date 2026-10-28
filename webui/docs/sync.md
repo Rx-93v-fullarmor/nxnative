@@ -15,15 +15,15 @@ Upstream-owned files are pristine except `dm/ios/project.yml`, so a normal
 merge is clean: the fork tree (`webui/`, `FORK.md` and the root launchers) does not overlap
 upstream. The root `.gitattributes` is shared: upstream's lines first, then a
 fork block that merges with the `union` driver (the fork's other rules are in
-`webui/.gitattributes`), so an upstream edit to it merges without a stop. Patch 0007 maps the
+`webui/.gitattributes`), so an upstream edit to it merges without a stop. Patch 0005 maps the
 WebUI's `--separate-romfs` onto upstream's `--romfs separate` and archives the
 image; keep it when porting. `webui/provisional.py` mirrors upstream
 `scripts/build_ipa_from_nsp.py`'s survey and provisional-profile format for the
-WebUI; recheck it when that upstream code changes. The fork's ObjC launch
-settings remain the launcher on both iOS paths; the Windows cross-build
-compiles `launcher_stub.m` instead of the upstream SwiftUI `Launcher.swift`,
-and the Mac build sets `DM_LAUNCHER=0` so the Swift launcher stays out of the
-way.
+WebUI; recheck it when that upstream code changes. The launcher is upstream's SwiftUI
+`Launcher.swift` on iOS and Mac; the fork no longer has its own. The Windows
+cross-build cannot compile Swift, so it links `webui/build/windows/launcher_stub.m`,
+whose `dm_show_launcher` returns false (the game starts at once); if upstream
+changes `dm_show_launcher` in `front_ios.m`, the sync reports it as a sensitive path.
 
 The 2026-10-23 sync force-pushed `main` to a vendor drop of upstream
 `eab15b5`; that history is preserved on

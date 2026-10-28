@@ -10,16 +10,14 @@ MARKERS = {
     '0002-gen-embed-posix-paths-sections.patch': ['no_dead_strip'],
     '0003-hle-count-targetconditionals.patch': ['TargetConditionals'],
     '0004-nx-extract-catalog.patch': ['--catalog'],
-    '0005-main-launch-settings.patch': ['DmLaunchSettings.h'],
-    '0006-build-ipa-launch-defaults.patch': ['NX_LAUNCH_DEFAULTS'],
-    '0007-build-ipa-from-nsp-webui.patch': ['@NXEVENT', '--separate-romfs', 'RomFS archive'],
+    '0005-build-ipa-from-nsp-webui.patch': ['@NXEVENT', '--separate-romfs', 'RomFS archive'],
 }
 
 
 class PatchQueueTests(unittest.TestCase):
     def test_patches_apply_and_add_markers(self):
         queue = staging.patch_queue()
-        self.assertEqual(len(queue), 7)
+        self.assertEqual(len(queue), 5)
         for patch, target in queue:
             data = diffapply.apply_file(REPO / target, patch.read_bytes(), target)
             text = data.decode('utf-8')

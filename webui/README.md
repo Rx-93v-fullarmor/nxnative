@@ -13,7 +13,7 @@ its original paths; everything here is safe to change without touching upstream.
 - `staging.py`: materializes the build staging tree (source snapshot + overlays + patches).
 - `diffapply.py`: line-ending-normalizing unified-diff applier used by staging and tests.
 - `build/windows/`: Windows cross-compile, shader build and IPA packer.
-- `overlays/dm/`: fork-only source files copied into the staged `dm/` tree.
+- `overlays/dm/`: (none at present) fork-only source files copied into the staged `dm/` tree.
 - `patches/`: ordered upstream hook patches (`series`).
 - `launchers/`: canonical Python/PowerShell/shell launchers.
 - `tools/`: staging CLI, patch queue, sync check, upstream sync CLI, tool preparation and XCI helper.

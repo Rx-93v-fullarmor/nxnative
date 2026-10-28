@@ -1,7 +1,7 @@
 """Materialize a build staging tree from the working tree.
 
-The stage is a full copy (never a writable hardlink) of the repository with five
-fork-only source overlays and seven upstream hook patches applied.  Builds run
+The stage is a full copy (never a writable hardlink) of the repository with the
+fork's source overlays (none at present) and the upstream hook patches applied.  Builds run
 only from the stage, so the working tree's upstream files stay untouched.
 """
 from __future__ import annotations
@@ -23,13 +23,7 @@ STAGING_VERSION = 1
 OVERLAY_ROOT = REPO / 'webui' / 'overlays'
 PATCH_ROOT = REPO / 'webui' / 'patches'
 
-OVERLAY_TARGETS = {
-    'dm/ios/Sources/DmLaunchSettings.h',
-    'dm/ios/Sources/DmLaunchSettings.m',
-    'dm/ios/Sources/DmPerfHud.m',
-    'dm/ios/Sources/dm_bundle_defaults.h',
-    'dm/ios/Sources/dm_launch_options.h',
-}
+OVERLAY_TARGETS: set[str] = set()   # fork-only source files placed into the stage (webui/overlays/<target>); none at present
 
 SKIP_DIR_NAMES = {'.git', '.webui-data', '.claude', '__pycache__', '.venv', 'venv', 'node_modules'}
 SKIP_DIR_PREFIXES = ('.iosdd',)
