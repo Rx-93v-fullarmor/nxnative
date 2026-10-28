@@ -33,6 +33,7 @@ jobs:
       MODE: ${{ github.event_name == 'schedule' && 'auto' || inputs.mode }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
       PYTHONUTF8: '1'
+      NX_REQUIRE_TEST_DEPS: '1'
       GIT_EXE: git
 
     steps:

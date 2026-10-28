@@ -3,6 +3,9 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from webui.tests import require
+require('fastapi', 'httpx')   # skipped when the package is missing
+
 from fastapi.testclient import TestClient
 from webui.jobs import Jobs, emit, read_events, summary, write_json
 from webui.server import create_app, data_directory

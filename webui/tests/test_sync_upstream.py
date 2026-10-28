@@ -167,6 +167,9 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn('git diff --name-only "$BASE_SHA..$SYNC_SHA" -- .github/workflows/upstream-sync.yml FORK.md', self.text)
         self.assertIn("grep -v '^webui/patches/'", self.text)
 
+    def test_ci_requires_test_dependencies(self):
+        self.assertIn("NX_REQUIRE_TEST_DEPS: '1'", self.text)
+
     def test_failure_and_review_notifications_exist(self):
         self.assertIn('gh issue create', self.text)
         self.assertIn('gh pr create', self.text)
