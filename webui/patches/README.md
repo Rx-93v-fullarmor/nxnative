@@ -31,7 +31,7 @@ no longer names the per-game `dmsh_chain.h`, while keeping `-framework MetalFX`.
 `scripts/build_ipa_from_nsp.py` keeps the `--separate-romfs` and
 `@NXEVENT` hooks beside upstream's new `--platform` option.
 
-## Patch 0007 notes
+## Patch 0005 notes (was 0009, then 0007)
 
 The original fork patch added a top-level `import json` because the WebUI
 launch-defaults block used `json` while the module imported it only inside
@@ -41,14 +41,13 @@ launch-defaults block and the separate-RomFS block. The rest of the patch is
 rebased onto upstream's newer `build_ipa_from_nsp.py` (derived profiles,
 `--prepare-xcode`, `--language`, `--show-fps`, `--progress json`).
 
-## Separate RomFS hook (0007)
+## Separate RomFS hook (0005)
 
 Upstream has `--romfs separate` (`DM_COPY_ROMFS=NO`, an identity file
-`romfs.id`, `scripts/push_romfs.sh`). Patch 0007 keeps the WebUI's
+`romfs.id`, `scripts/push_romfs.sh`). Patch 0005 keeps the WebUI's
 `--separate-romfs` flag: it selects that mode and then writes the RomFS image
 (or folder) to `<ipa>.romfs.zip` with `webui/build/romfs_archive.py`, as a
-top-level `romfs.img` or `romfs/`, created by the upstream `pack_ipa.py`. Patch
-0006 only adds the launch-defaults copy to `build_ipa.sh`.
+top-level `romfs.img` or `romfs/`, created by the upstream `pack_ipa.py`..
 
 ## Do not regenerate
 
@@ -76,3 +75,13 @@ an effect.
 Upstream added `--romfs separate` (#493, #478). The fork's own
 `NX_SEPARATE_ROMFS` hook in `build_ipa.sh` was removed; patch 0007 reuses
 upstream's mode.
+
+## 2026-10-28: one launcher in two languages (queue is now 0001-0005)
+
+The fork's own launch settings (patches for `main.m` and the `build_ipa.sh` launch-defaults copy, the
+`launch-defaults.json` plumbing, `DmLaunchSettings`, `DmPerfHud`, `dm_launch_options.h`,
+`dm_bundle_defaults.h`) were replaced by `overlays/dm/ios/Sources/DmLauncher.m`, an ObjC port of upstream's
+Swift launcher. An `objc` stage removes `Launcher.swift`, `LauncherRow.swift` and `LauncherSettings.swift`
+(`staging.OBJC_REMOVED`) and adds the port; a `swiftui` stage is upstream's tree. `main.m` is not patched
+(`front_ios.m` calls `dm_show_launcher`). The WebUI sets only the game language (`--language`); the other
+settings are upstream's own rows. The former patch 0007 is now 0005.
