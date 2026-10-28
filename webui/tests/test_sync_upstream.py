@@ -164,7 +164,7 @@ class WorkflowTests(unittest.TestCase):
             if 'git push' in line and 'refs/heads/main' in line:
                 self.assertNotIn('--force', line)
         self.assertIn('git merge-base --is-ancestor', self.text)
-        self.assertIn('git diff --name-only "$BASE_SHA..$SYNC_SHA" -- .github/workflows/upstream-sync.yml .gitattributes', self.text)
+        self.assertIn('git diff --name-only "$BASE_SHA..$SYNC_SHA" -- .github/workflows/upstream-sync.yml FORK.md', self.text)
         self.assertIn("grep -v '^webui/patches/'", self.text)
 
     def test_failure_and_review_notifications_exist(self):

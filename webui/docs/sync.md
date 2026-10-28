@@ -12,8 +12,10 @@ vendor-drop equivalent is `sync/upstream-20261024`, the ported hooks are on
 `backup/main-before-upstream-20261024`.
 
 Upstream-owned files are pristine except `dm/ios/project.yml`, so a normal
-merge is clean: the fork tree (`webui/`, `FORK.md`, root launchers and
-`.gitattributes`) does not overlap upstream. Patches 0008/0009 carry the
+merge is clean: the fork tree (`webui/`, `FORK.md` and the root launchers) does not overlap
+upstream. The root `.gitattributes` is shared: upstream's lines first, then a
+fork block that merges with the `union` driver (the fork's other rules are in
+`webui/.gitattributes`), so an upstream edit to it merges without a stop. Patches 0006/0007 carry the
 optional separate RomFS hooks (`NX_SEPARATE_ROMFS` / `--separate-romfs`); keep
 them when porting. `webui/provisional.py` mirrors upstream
 `scripts/build_ipa_from_nsp.py`'s survey and provisional-profile format for the
@@ -62,7 +64,7 @@ open `review` PR redundant. The workflow records `main` and upstream before runn
 publishes when:
 
 - the merge has exactly the expected parents;
-- the existing nine patches applied to the new upstream with `git apply`
+- the existing seven patches applied to the new upstream with `git apply`
   (exact context, offsets allowed);
 - the regenerated patches are non-empty, pass the strict `diffapply`/staging
   checks and the metadata was committed;
@@ -74,8 +76,7 @@ publishes when:
   `webui/patches/`.
 
 Upstream changes to fork-owned paths (`webui/`, the fork-owned
-`.github/workflows/upstream-sync.yml`, `FORK.md`, the root launchers or
-`.gitattributes`) or to the directly edited `dm/ios/project.yml` stop the run
+`.github/workflows/upstream-sync.yml`, `FORK.md` or the root launchers) or to the directly edited `dm/ios/project.yml` stop the run
 before any merge and require a human. Other upstream `.github` files, such as
 its own test workflows, merge normally. Any failure stops the sync. It leaves
 the branch/commit, logs and `.webui-data/upstream-sync/report` evidence, and
@@ -156,8 +157,8 @@ git switch -c hooks/upstream-$(date +%Y%m%d) upstream/main
 # Replay the previous hooks commit onto the new upstream, or apply
 # webui/patches/*.patch, and resolve the hunks upstream changed:
 #   git rebase --onto upstream/main <old upstream> <old hooks branch>
-# Keep the fork-only behaviour (POSIX paths, no_dead_strip, MetalFX, the
-# ObjC launch settings, --target mac, --separate-romfs and @NXEVENT).
+# Keep the fork-only behaviour (POSIX paths, no_dead_strip, the ObjC
+# launch settings, --separate-romfs and @NXEVENT).
 git commit -am "port fork hooks onto upstream main"
 ```
 
@@ -196,7 +197,7 @@ upstream and copy the fork tree:
 ```sh
 git fetch upstream --prune
 git switch -c sync/upstream-$(date +%Y%m%d) upstream/main
-git checkout main -- webui FORK.md .gitattributes start-webui.bat start-webui.command start-webui.sh
+git checkout main -- webui FORK.md start-webui.bat start-webui.command start-webui.sh
 # Re-apply the fullscreen edit to the new dm/ios/project.yml:
 #   remove UILaunchStoryboardName, add UILaunchScreen: {}, keep UIRequiresFullScreen: true
 git commit -am "vendor drop: upstream main + fork webui"

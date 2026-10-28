@@ -13,7 +13,6 @@ its original paths; everything here is safe to change without touching upstream.
 - `staging.py`: materializes the build staging tree (source snapshot + overlays + patches).
 - `diffapply.py`: line-ending-normalizing unified-diff applier used by staging and tests.
 - `build/windows/`: Windows cross-compile, shader build and IPA packer.
-- `build/macos/`: macOS application wrapper and packager.
 - `overlays/dm/`: fork-only source files copied into the staged `dm/` tree.
 - `patches/`: ordered upstream hook patches (`series`).
 - `launchers/`: canonical Python/PowerShell/shell launchers.
@@ -29,8 +28,8 @@ its original paths; everything here is safe to change without touching upstream.
    pure-Python applier. The working tree is never modified.
 3. The Windows builder runs the staged
    `webui/build/windows/build_ipa_windows.py`; macOS runs the staged
-   `scripts/build_ipa_from_nsp.py` (patched to accept `--target mac` and launch
-   defaults). nx_extract is built from the staged, patched C# project.
+   `scripts/build_ipa_from_nsp.py` with upstream's `--platform mac-app` for the Mac app (zipped
+   as `.app.zip`) and the patched launch defaults for iOS. nx_extract is built from the staged, patched C# project.
 4. With the optional `--separate-romfs` (WebUI: **Separate IPA and RomFS**,
    default off), the iOS IPA omits `Payload/DmIOS.app/romfs` and
    `webui/build/romfs_archive.py` uses the upstream `pack_ipa.py` to write

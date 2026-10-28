@@ -28,28 +28,28 @@ fork's POSIX paths and `no_dead_strip` section attributes are applied to both
 the module and NRO section directives. The host Makefile line carries upstream's
 new headers (`pad_slots.h`, `hle_haptics.h`, `haptics_apple.h`, CoreHaptics) and
 no longer names the per-game `dmsh_chain.h`, while keeping `-framework MetalFX`.
-`scripts/build_ipa_from_nsp.py` keeps the `--target mac`, `--separate-romfs` and
+`scripts/build_ipa_from_nsp.py` keeps the `--separate-romfs` and
 `@NXEVENT` hooks beside upstream's new `--platform` option.
 
-## Patch 0009 notes
+## Patch 0007 notes
 
 The original fork patch added a top-level `import json` because the WebUI
 launch-defaults block used `json` while the module imported it only inside
 `Progress.stage`. Upstream now imports `json` itself; the port keeps the WebUI
-`@NXEVENT` hooks, the macOS target path (`webui/build/macos/pack_app.py`), the
+`@NXEVENT` hooks, the
 launch-defaults block and the separate-RomFS block. The rest of the patch is
 rebased onto upstream's newer `build_ipa_from_nsp.py` (derived profiles,
 `--prepare-xcode`, `--language`, `--show-fps`, `--progress json`).
 
-## Separate RomFS hooks (0008/0009)
+## Separate RomFS hooks (0006/0007)
 
-Patches 0008 (`dm/ios/tools/build_ipa.sh`) and 0009
+Patches 0006 (`dm/ios/tools/build_ipa.sh`) and 0007
 (`scripts/build_ipa_from_nsp.py`) also carry the optional `--separate-romfs`
-hooks. Patch 0008 skips the `MAPS` RomFS entry when
-`NX_SEPARATE_ROMFS=1`; patch 0009 adds the flag, sets that environment value,
+hooks. Patch 0006 skips the `MAPS` RomFS entry when
+`NX_SEPARATE_ROMFS=1`; patch 0007 adds the flag, sets that environment value,
 and creates the separate archive with `webui/build/romfs_archive.py`. The
-archive layout is a top-level `romfs/`, created by the upstream `pack_ipa.py`.
-This remains one patch per target; the queue is still nine patches.
+archive layout is a top-level `romfs/`, or one `romfs.img` when the extraction is upstream's
+RomFS image; both are created by the upstream `pack_ipa.py`.
 
 ## Do not regenerate
 
@@ -59,3 +59,15 @@ intentional direct edit (fullscreen launch keys).
 
 After an upstream sync, port the hooks onto a temporary hooks branch and run
 `python webui/tools/patch_queue.py regenerate`. See `webui/docs/sync.md`.
+
+## 2026-10-28 sync (upstream e06adb2)
+
+Upstream now has MetalFX spatial upscaling (`DM_PRESENT_UPSCALE=metalfx`), a
+`--platform mac-app` Mac application, a RomFS image (`RomFS.img`,
+`Documents/romfs.img`) and its own launcher. The fork dropped its MetalFX
+patches and overlays (old 0005/0006), and its macOS wrapper
+(`webui/build/macos/`); WebUI Mac builds use `--platform mac-app`. The queue
+is renumbered 0001-0007. The ObjC launch settings stay (Windows cross-builds
+cannot compile the SwiftUI launcher) and map their upscaling row to
+`DM_PRESENT_UPSCALE`; the output-height and interpolation rows no longer have
+an effect.

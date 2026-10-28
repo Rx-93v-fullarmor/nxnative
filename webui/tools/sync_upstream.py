@@ -25,7 +25,7 @@ from webui.repo import REPO, UPSTREAM_URL, ensure_git_exclude
 
 BRANCHES = {'auto': 'auto/upstream-sync', 'review': 'review/upstream-sync'}
 HOOKS_BRANCH = 'hooks/upstream-sync'
-FORK_OWNED = ('.github/workflows/upstream-sync.yml', 'webui/', 'FORK.md', '.gitattributes',
+FORK_OWNED = ('.github/workflows/upstream-sync.yml', 'webui/', 'FORK.md',
               'start-webui.sh', 'start-webui.command', 'start-webui.bat')
 MANUAL_REVIEW = ('dm/ios/project.yml',)
 SENSITIVE = set(staging.OVERLAY_TARGETS) | {target for _, target in staging.patch_queue()} | {
