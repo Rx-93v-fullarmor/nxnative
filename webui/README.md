@@ -49,3 +49,15 @@ its original paths; everything here is safe to change without touching upstream.
 4. Run `python webui/tools/sync_check.py` and the full test suite.
 
 See `docs/sync.md` and `docs/webui.md` for the user-facing workflow.
+
+## Tests
+
+```sh
+python -m pip install -r webui/requirements-sync-ci.txt
+python -m unittest discover -s webui/tests -t .
+```
+
+A module whose package is missing is skipped; `NX_REQUIRE_TEST_DEPS=1` (set in the
+sync workflow) turns that into an error. `test_sync_e2e.py` runs the sync tool against a
+throwaway upstream and fork, and `test_patched_scripts.py` runs the patched upstream
+scripts in a stage; both need `git` / `bash` and skip without them.
